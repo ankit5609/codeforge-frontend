@@ -51,6 +51,12 @@ export function ProjectView() {
   useEffect(() => {
     if (!projectId) return;
 
+    // Reset immediately so a previous project's chat/preview never flashes
+    // while the new project's data is loading.
+    setMessages([]);
+    setProject(null);
+    setUpdatedFiles(new Map());
+
     const loadData = async () => {
       setIsLoadingHistory(true);
       try {
@@ -437,10 +443,11 @@ Please analyze this error and fix the code to resolve it.`;
             <div className="h-full">
               <div className="h-full relative">
                 <div className={cn("h-full absolute inset-0", viewMode !== "code" && "hidden")}>
-                  <CodePanel projectId={projectId} updatedFiles={updatedFiles} />
+                  <CodePanel key={projectId} projectId={projectId} updatedFiles={updatedFiles} />
                 </div>
                 <div className={cn("h-full absolute inset-0", viewMode !== "preview" && "hidden")}>
                   <PreviewPanel
+                    key={projectId}
                     projectId={projectId}
                     runtimeError={runtimeError}
                     onDismiss={() => setRuntimeError(null)}

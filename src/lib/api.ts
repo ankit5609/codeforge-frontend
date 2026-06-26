@@ -1,6 +1,6 @@
 import { ChatMessage, DeployResponse, FileNode, LoginCredentials, LoginResponse, ProjectSummaryResponse, ProjectRequest, ProjectResponse, ProjectMember, ProjectRole, SignupRequest, AuthResponse } from "./types";
 
-const BASE_URL = "http://localhost:8080";
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
 export const getAuthToken = () => localStorage.getItem("auth_token");
 
@@ -96,7 +96,7 @@ function buildFileTree(paths: { path: string }[]): FileNode[] {
 
 export const api = {
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
-    const response = await fetch(`${BASE_URL}/api/auth/login`, {
+    const response = await fetch(`${BASE_URL}/api/v1/account/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(credentials),
@@ -111,7 +111,7 @@ export const api = {
   },
 
   async signup(data: SignupRequest): Promise<AuthResponse> {
-    const response = await fetch(`${BASE_URL}/api/auth/signup`, {
+    const response = await fetch(`${BASE_URL}/api/v1/account/auth/signup`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -126,7 +126,7 @@ export const api = {
   },
 
   async getFiles(projectId: string): Promise<FileNode[]> {
-    const response = await fetch(`${BASE_URL}/api/projects/${projectId}/files`, {
+    const response = await fetch(`${BASE_URL}/api/v1/workspace/projects/${projectId}/files`, {
       headers: { ...getAuthHeaders() },
     });
 
@@ -140,24 +140,22 @@ export const api = {
 
   async getFileContent(projectId: string, path: string): Promise<string> {
     const response = await fetch(
-      `${BASE_URL}/api/projects/${projectId}/files/content?path=${path}`,
+      `${BASE_URL}/api/v1/workspace/projects/${projectId}/files/content?path=${encodeURIComponent(path)}`,
       {
         headers: { ...getAuthHeaders() },
       }
     );
-
-    const data = await response.json();
 
     if (!response.ok) {
       console.error(`Error fetching file: ${response.status} ${response.statusText}`);
       throw new Error("Failed to fetch file content");
     }
 
-    return data.content;
+    return response.text();
   },
 
   async deploy(projectId: string): Promise<DeployResponse> {
-    const response = await fetch(`${BASE_URL}/api/projects/${projectId}/deploy`, {
+    const response = await fetch(`${BASE_URL}/api/v1/workspace/projects/${projectId}/deploy`, {
       method: "POST",
       headers: { ...getAuthHeaders() },
     });
@@ -170,7 +168,7 @@ export const api = {
   },
 
   async getProjects(): Promise<ProjectSummaryResponse[]> {
-    const response = await fetch(`${BASE_URL}/api/projects`, {
+    const response = await fetch(`${BASE_URL}/api/v1/workspace/projects`, {
       headers: { ...getAuthHeaders() },
     });
 
@@ -182,7 +180,7 @@ export const api = {
   },
 
   async createProject(name: string): Promise<ProjectSummaryResponse> {
-    const response = await fetch(`${BASE_URL}/api/projects`, {
+    const response = await fetch(`${BASE_URL}/api/v1/workspace/projects`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...getAuthHeaders() },
       body: JSON.stringify({ name }),
@@ -196,7 +194,7 @@ export const api = {
   },
 
   async getProject(id: string): Promise<ProjectResponse> {
-    const response = await fetch(`${BASE_URL}/api/projects/${id}`, {
+    const response = await fetch(`${BASE_URL}/api/v1/workspace/projects/${id}`, {
       headers: { ...getAuthHeaders() },
     });
 
@@ -208,7 +206,7 @@ export const api = {
   },
 
   async updateProject(id: string, name: string): Promise<ProjectResponse> {
-    const response = await fetch(`${BASE_URL}/api/projects/${id}`, {
+    const response = await fetch(`${BASE_URL}/api/v1/workspace/projects/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json", ...getAuthHeaders() },
       body: JSON.stringify({ name }),
@@ -222,7 +220,7 @@ export const api = {
   },
 
   async deleteProject(id: string): Promise<void> {
-    const response = await fetch(`${BASE_URL}/api/projects/${id}`, {
+    const response = await fetch(`${BASE_URL}/api/v1/workspace/projects/${id}`, {
       method: "DELETE",
       headers: { ...getAuthHeaders() },
     });
@@ -233,7 +231,7 @@ export const api = {
   },
 
   async downloadProjectZip(id: string): Promise<Blob> {
-    const response = await fetch(`${BASE_URL}/api/projects/${id}/files/download-zip`, {
+    const response = await fetch(`${BASE_URL}/api/v1/workspace/projects/${id}/files/download-zip`, {
       headers: { ...getAuthHeaders() },
     });
 
@@ -245,7 +243,7 @@ export const api = {
   },
 
   async getProjectMembers(projectId: string): Promise<ProjectMember[]> {
-    const response = await fetch(`${BASE_URL}/api/projects/${projectId}/members`, {
+    const response = await fetch(`${BASE_URL}/api/v1/workspace/projects/${projectId}/members`, {
       headers: { ...getAuthHeaders() },
     });
 
@@ -257,7 +255,7 @@ export const api = {
   },
 
   async inviteMember(projectId: string, username: string, role: ProjectRole): Promise<void> {
-    const response = await fetch(`${BASE_URL}/api/projects/${projectId}/members`, {
+    const response = await fetch(`${BASE_URL}/api/v1/workspace/projects/${projectId}/members`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...getAuthHeaders() },
       body: JSON.stringify({ username, role }),
@@ -270,7 +268,7 @@ export const api = {
   },
 
   async updateMemberRole(projectId: string, userId: number, role: ProjectRole): Promise<void> {
-    const response = await fetch(`${BASE_URL}/api/projects/${projectId}/members/${userId}`, {
+    const response = await fetch(`${BASE_URL}/api/v1/workspace/projects/${projectId}/members/${userId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json", ...getAuthHeaders() },
       body: JSON.stringify({ role }),
@@ -282,7 +280,7 @@ export const api = {
   },
 
   async removeMember(projectId: string, userId: number): Promise<void> {
-    const response = await fetch(`${BASE_URL}/api/projects/${projectId}/members/${userId}`, {
+    const response = await fetch(`${BASE_URL}/api/v1/workspace/projects/${projectId}/members/${userId}`, {
       method: "DELETE",
       headers: { ...getAuthHeaders() },
     });
@@ -293,7 +291,7 @@ export const api = {
   },
 
   async getChatHistory(projectId: string): Promise<ChatMessage[]> {
-    const response = await fetch(`${BASE_URL}/api/chat/projects/${projectId}`, {
+    const response = await fetch(`${BASE_URL}/api/v1/intelligence/chat/projects/${projectId}`, {
       headers: { ...getAuthHeaders() },
     });
 
@@ -314,7 +312,7 @@ export const api = {
   ) {
     const controller = new AbortController();
 
-    fetch(`${BASE_URL}/api/chat/stream`, {
+    fetch(`${BASE_URL}/api/v1/intelligence/chat/stream`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...getAuthHeaders() },
       body: JSON.stringify({ message, projectId }),

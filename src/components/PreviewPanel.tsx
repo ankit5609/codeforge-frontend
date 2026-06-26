@@ -14,30 +14,73 @@ interface PreviewPanelProps {
 }
 
 export function PreviewPanel({ projectId, runtimeError, onDismiss, onFix }: PreviewPanelProps) {
-  const [previewUrl, setPreviewUrl] = useState<string | null>(() => {
-    // Load from localStorage on mount
-    return localStorage.getItem(PREVIEW_URL_KEY);
-  });
+  const getPreviewUrlKey = (projId: string) => `${PREVIEW_URL_KEY}_${projId}`;
+
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isDeploying, setIsDeploying] = useState(false);
+  const [isWaitingForServer, setIsWaitingForServer] = useState(false);
+  const [waitAttempt, setWaitAttempt] = useState(0);
+  const [iframeReady, setIframeReady] = useState(false);
   const { toast } = useToast();
 
-  // Store previewUrl in localStorage when it changes
+  // Sync state when projectId changes
   useEffect(() => {
-    if (previewUrl) {
-      localStorage.setItem(PREVIEW_URL_KEY, previewUrl);
+    const savedUrl = localStorage.getItem(getPreviewUrlKey(projectId));
+    // Validation: make sure the saved URL belongs to this specific project ID
+    if (savedUrl && savedUrl.includes(`project-${projectId}`)) {
+      setPreviewUrl(savedUrl);
+    } else {
+      setPreviewUrl(null);
     }
-  }, [previewUrl]);
+  }, [projectId]);
+
+  // Poll the preview URL until it responds with a non-502/non-404 status
+  const waitForPreviewReady = async (url: string) => {
+    setIsWaitingForServer(true);
+    setIframeReady(false);
+    const MAX_ATTEMPTS = 40; // 40 × 3s = 2 minutes
+
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      setWaitAttempt(attempt);
+      try {
+        // Use no-cors so browser doesn't block cross-origin; we just need a response (not an error)
+        const res = await fetch(url, { method: "GET", mode: "no-cors", cache: "no-store" });
+        // no-cors gives "opaque" response with status 0 — any non-network-error means server is up
+        if (res.type === "opaque" || res.ok) {
+          setIsWaitingForServer(false);
+          setIframeReady(true);
+          return;
+        }
+      } catch {
+        // Network error = server still starting, keep polling
+      }
+      await new Promise((r) => setTimeout(r, 3000));
+    }
+
+    // Timed out — show iframe anyway (might work by now or show its own error)
+    setIsWaitingForServer(false);
+    setIframeReady(true);
+    toast({
+      title: "Preview may still be starting",
+      description: "The server took longer than expected. Try refreshing in a moment.",
+      variant: "destructive",
+    });
+  };
 
   const handleDeploy = async () => {
     setIsDeploying(true);
+    setIframeReady(false);
 
     try {
       const response = await api.deploy(projectId);
       setPreviewUrl(response.previewUrl);
+      localStorage.setItem(getPreviewUrlKey(projectId), response.previewUrl);
       toast({
         title: "Deployment successful",
-        description: "Your preview is now ready",
+        description: "Starting preview server, please wait...",
       });
+      // Start polling — Vite takes 30-60s to start after npm install
+      waitForPreviewReady(response.previewUrl);
     } catch (error) {
       toast({
         title: "Deployment failed",
@@ -65,7 +108,7 @@ export function PreviewPanel({ projectId, runtimeError, onDismiss, onFix }: Prev
             variant="ghost"
             size="icon"
             onClick={handleRefresh}
-            disabled={!previewUrl}
+            disabled={!previewUrl || isWaitingForServer}
             className="h-7 w-7 text-muted-foreground hover:text-foreground"
           >
             <RefreshCw className="w-3.5 h-3.5" />
@@ -92,7 +135,7 @@ export function PreviewPanel({ projectId, runtimeError, onDismiss, onFix }: Prev
           )}
           <Button
             onClick={handleDeploy}
-            disabled={isDeploying}
+            disabled={isDeploying || isWaitingForServer}
             size="sm"
             className="h-7 px-3 bg-primary hover:bg-primary/90 text-xs font-medium"
           >
@@ -113,7 +156,34 @@ export function PreviewPanel({ projectId, runtimeError, onDismiss, onFix }: Prev
 
       {/* Preview Area */}
       <div className="flex-1 bg-[#1a1a1a]">
-        {previewUrl ? (
+        {isWaitingForServer ? (
+          <div className="flex flex-col items-center justify-center h-full text-center p-8 gap-4">
+            <Loader2 className="w-10 h-10 text-primary animate-spin" />
+            <div>
+              <p className="text-sm font-medium text-foreground">Starting preview server...</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Installing dependencies &amp; launching Vite ({waitAttempt * 3}s elapsed)
+              </p>
+            </div>
+            <div className="flex gap-1 mt-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <span
+                  key={i}
+                  className="w-1.5 h-1.5 rounded-full bg-primary/40 animate-pulse"
+                  style={{ animationDelay: `${i * 0.15}s` }}
+                />
+              ))}
+            </div>
+          </div>
+        ) : previewUrl && iframeReady ? (
+          <iframe
+            src={previewUrl}
+            className="w-full h-full border-0"
+            title="Preview"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+          />
+        ) : previewUrl && !iframeReady ? (
+          // Has a saved URL from a previous session — show iframe directly
           <iframe
             src={previewUrl}
             className="w-full h-full border-0"
