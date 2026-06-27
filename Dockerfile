@@ -4,7 +4,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
-ENV VITE_API_URL=http://api.codeforge.arclite.site
+ENV VITE_API_URL=""
 RUN npm run build
 
 # Stage 2: Serve with NGINX

@@ -27,7 +27,7 @@ export function ProjectView() {
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>("preview");
+  const [viewMode, setViewMode] = useState<ViewMode>("code");
   const [updatedFiles, setUpdatedFiles] = useState<Map<string, string>>(new Map());
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [runtimeError, setRuntimeError] = useState<RuntimeError | null>(null);

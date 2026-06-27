@@ -21,6 +21,7 @@ export function PreviewPanel({ projectId, runtimeError, onDismiss, onFix }: Prev
   const [isWaitingForServer, setIsWaitingForServer] = useState(false);
   const [waitAttempt, setWaitAttempt] = useState(0);
   const [iframeReady, setIframeReady] = useState(false);
+  const [iframeKey, setIframeKey] = useState(0);
   const { toast } = useToast();
 
   // Sync state when projectId changes
@@ -43,16 +44,17 @@ export function PreviewPanel({ projectId, runtimeError, onDismiss, onFix }: Prev
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       setWaitAttempt(attempt);
       try {
-        // Use no-cors so browser doesn't block cross-origin; we just need a response (not an error)
-        const res = await fetch(url, { method: "GET", mode: "no-cors", cache: "no-store" });
-        // no-cors gives "opaque" response with status 0 — any non-network-error means server is up
-        if (res.type === "opaque" || res.ok) {
+        // With CORS enabled on the wildcard proxy, we can directly fetch the URL
+        // and check the actual status code to ensure Vite is up (status 200) and not 502/404.
+        const res = await fetch(url, { method: "GET", cache: "no-store" });
+        if (res.ok) {
           setIsWaitingForServer(false);
           setIframeReady(true);
+          setIframeKey((prev) => prev + 1);
           return;
         }
       } catch {
-        // Network error = server still starting, keep polling
+        // Network or CORS error = server still starting, keep polling
       }
       await new Promise((r) => setTimeout(r, 3000));
     }
@@ -93,10 +95,7 @@ export function PreviewPanel({ projectId, runtimeError, onDismiss, onFix }: Prev
   };
 
   const handleRefresh = () => {
-    const iframe = document.querySelector("iframe");
-    if (iframe) {
-      iframe.src = iframe.src;
-    }
+    setIframeKey((prev) => prev + 1);
   };
 
   return (
@@ -177,6 +176,7 @@ export function PreviewPanel({ projectId, runtimeError, onDismiss, onFix }: Prev
           </div>
         ) : previewUrl && iframeReady ? (
           <iframe
+            key={`iframe-${iframeKey}`}
             src={previewUrl}
             className="w-full h-full border-0"
             title="Preview"
@@ -185,6 +185,7 @@ export function PreviewPanel({ projectId, runtimeError, onDismiss, onFix }: Prev
         ) : previewUrl && !iframeReady ? (
           // Has a saved URL from a previous session — show iframe directly
           <iframe
+            key={`iframe-${iframeKey}`}
             src={previewUrl}
             className="w-full h-full border-0"
             title="Preview"
