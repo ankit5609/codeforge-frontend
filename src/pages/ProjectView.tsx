@@ -91,7 +91,7 @@ export function ProjectView() {
         setProject(projectData);
 
         // Silent background deploy trigger to warm up GKE runner pod
-        api.deploy(projectId)
+        api.deploy(projectId, false)
           .then((res) => {
              const previewUrlKey = `preview-url-${projectId}`;
              localStorage.setItem(previewUrlKey, res.previewUrl);

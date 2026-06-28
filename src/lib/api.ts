@@ -189,8 +189,8 @@ export const api = {
     return response.text();
   },
 
-  async deploy(projectId: string): Promise<DeployResponse> {
-    const response = await fetch(`${BASE_URL}/api/v1/workspace/projects/${projectId}/deploy`, {
+  async deploy(projectId: string, force: boolean = false): Promise<DeployResponse> {
+    const response = await fetch(`${BASE_URL}/api/v1/workspace/projects/${projectId}/deploy?force=${force}`, {
       method: "POST",
       headers: { ...getAuthHeaders() },
     });

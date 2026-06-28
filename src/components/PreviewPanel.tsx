@@ -75,7 +75,7 @@ export function PreviewPanel({ projectId, runtimeError, onDismiss, onFix }: Prev
     setIframeReady(false);
 
     try {
-      const response = await api.deploy(projectId);
+      const response = await api.deploy(projectId, true);
       setPreviewUrl(response.previewUrl);
       localStorage.setItem(getPreviewUrlKey(projectId), response.previewUrl);
       toast({
