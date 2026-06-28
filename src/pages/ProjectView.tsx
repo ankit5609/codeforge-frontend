@@ -89,6 +89,19 @@ export function ProjectView() {
         }));
         setMessages(formattedMessages);
         setProject(projectData);
+
+        // Silent background deploy trigger to warm up GKE runner pod
+        api.deploy(projectId)
+          .then((res) => {
+             const previewUrlKey = `preview-url-${projectId}`;
+             localStorage.setItem(previewUrlKey, res.previewUrl);
+             console.log("Background preview warm-start successful:", res.previewUrl);
+             setRefreshKey((prev) => prev + 1);
+          })
+          .catch((err) => {
+             console.warn("Background preview warm-start failed:", err);
+          });
+
       } catch (error) {
         console.error("Failed to load project data:", error);
         toast({
@@ -179,8 +192,9 @@ export function ProjectView() {
           )
         );
         setIsStreaming(false);
-        // Newly generated files exist on the server now — refresh the file tree.
-        setRefreshKey((k) => k + 1);
+        if (currentEditedFilesRef.current.length > 0) {
+          setRefreshKey((prev) => prev + 1);
+        }
       },
       (error) => {
         // Handle error
@@ -478,7 +492,7 @@ Please analyze this error and fix the code to resolve it.`;
               </div>
               <div className={cn("absolute inset-0", mobileTab !== "preview" && "hidden")}>
                 <PreviewPanel
-                  key={projectId}
+                  key={`${projectId}-${refreshKey}`}
                   projectId={projectId}
                   runtimeError={runtimeError}
                   onDismiss={() => setRuntimeError(null)}
@@ -537,7 +551,7 @@ Please analyze this error and fix the code to resolve it.`;
                   </div>
                   <div className={cn("h-full absolute inset-0", viewMode !== "preview" && "hidden")}>
                     <PreviewPanel
-                      key={projectId}
+                      key={`${projectId}-${refreshKey}`}
                       projectId={projectId}
                       runtimeError={runtimeError}
                       onDismiss={() => setRuntimeError(null)}

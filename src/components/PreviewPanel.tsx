@@ -28,11 +28,13 @@ export function PreviewPanel({ projectId, runtimeError, onDismiss, onFix }: Prev
   // Sync state when projectId changes
   useEffect(() => {
     const savedUrl = localStorage.getItem(getPreviewUrlKey(projectId));
-    // Validation: make sure the saved URL belongs to this specific project ID
     if (savedUrl && savedUrl.includes(`project-${projectId}`)) {
       setPreviewUrl(savedUrl);
+      waitForPreviewReady(savedUrl);
     } else {
       setPreviewUrl(null);
+      setIsWaitingForServer(false);
+      setIframeReady(false);
     }
   }, [projectId]);
 
