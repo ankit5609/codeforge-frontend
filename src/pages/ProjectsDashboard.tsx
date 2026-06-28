@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, LogOut, Search, Terminal, Loader2, MoreVertical, Trash, Download, Edit, GitBranch, FolderGit2, CreditCard, Sparkles, AlertTriangle, Check, Zap } from "lucide-react";
+import { Plus, LogOut, Search, Terminal, Loader2, MoreVertical, Trash, Download, Edit, GitBranch, FolderGit2, CreditCard, Sparkles, AlertTriangle, Check, Zap, Settings as SettingsIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -12,6 +12,9 @@ import { useToast } from "@/hooks/use-toast";
 import { generateGradient, cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { PRICING_PLANS } from "@/lib/plans";
+import { UsageMeter } from "@/components/UsageMeter";
+import { deriveTokenUsage, deriveProjectUsage } from "@/lib/usage";
+import { PROJECT_TEMPLATES } from "@/lib/templates";
 
 // Plan tiers come from the shared hardcoded pricing source (no public
 // "list plans" endpoint). planId maps to the backend Stripe configuration.
@@ -90,14 +93,19 @@ export function ProjectsDashboard() {
         setIsPortalLoading(true);
         try {
             const { portalUrl } = await api.createPortalSession();
+            if (!portalUrl) {
+                throw new Error("No billing portal URL was returned.");
+            }
             window.location.href = portalUrl;
         } catch (error) {
             console.error("Failed to open billing portal:", error);
+            // Graceful fallback: surface plan options instead of a dead end.
             toast({
-                title: "Error",
-                description: "Could not open the billing portal. Please try again.",
+                title: "Billing portal unavailable",
+                description: "We couldn't reach the billing portal right now. Showing your plan options instead.",
                 variant: "destructive",
             });
+            setIsPlanDialogOpen(true);
             setIsPortalLoading(false);
         }
     };
@@ -280,6 +288,10 @@ export function ProjectsDashboard() {
                                 <p className="text-sm font-medium leading-none text-foreground">{user?.name || "User"}</p>
                                 <p className="text-xs leading-none text-muted-foreground mt-1">{user?.username || ""}</p>
                             </div>
+                            <DropdownMenuItem onClick={() => navigate("/settings")} className="cursor-pointer">
+                                <SettingsIcon className="w-4 h-4 mr-2" />
+                                Settings
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive cursor-pointer">
                                 <LogOut className="w-4 h-4 mr-2" />
                                 Sign out
@@ -340,16 +352,38 @@ export function ProjectsDashboard() {
                                     Give your project a name to get started. You can change it later.
                                 </DialogDescription>
                             </DialogHeader>
-                            <div className="py-4">
-                                <label className="text-sm font-medium text-foreground">Project name</label>
-                                <Input
-                                    placeholder="My awesome project"
-                                    value={newProjectName}
-                                    onChange={(e) => setNewProjectName(e.target.value)}
-                                    onKeyDown={(e) => e.key === "Enter" && handleCreateProject()}
-                                    autoFocus
-                                    className="mt-2 h-11"
-                                />
+                            <div className="py-4 space-y-4">
+                                <div>
+                                    <label className="text-sm font-medium text-foreground">Project name</label>
+                                    <Input
+                                        placeholder="My awesome project"
+                                        value={newProjectName}
+                                        onChange={(e) => setNewProjectName(e.target.value)}
+                                        onKeyDown={(e) => e.key === "Enter" && handleCreateProject()}
+                                        autoFocus
+                                        className="mt-2 h-11"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-foreground">Start from a template</label>
+                                    <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                        {PROJECT_TEMPLATES.map((tpl) => {
+                                            const Icon = tpl.icon;
+                                            return (
+                                                <button
+                                                    key={tpl.id}
+                                                    type="button"
+                                                    onClick={() => { if (tpl.id !== "blank" && !newProjectName.trim()) setNewProjectName(tpl.name); }}
+                                                    className="group text-left rounded-xl border border-border/70 bg-card/60 p-3 transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-card"
+                                                >
+                                                    <Icon className="w-4 h-4 text-primary" />
+                                                    <p className="mt-1.5 text-xs font-semibold text-foreground group-hover:text-primary transition-colors">{tpl.name}</p>
+                                                    <p className="text-[10px] text-muted-foreground leading-tight mt-0.5 line-clamp-2">{tpl.description}</p>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
                             </div>
                             <DialogFooter>
                                 <Button variant="outline" onClick={() => setIsDialogOpen(false)} className="rounded-full">Cancel</Button>
@@ -446,6 +480,23 @@ export function ProjectsDashboard() {
                     </Dialog>
                 </div>
 
+
+                {/* Usage meters */}
+                {subscription && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                        <UsageMeter
+                            label="AI tokens this cycle"
+                            usage={deriveTokenUsage(subscription)}
+                            unit="tokens"
+                            caption="Resets at the start of each billing cycle."
+                        />
+                        <UsageMeter
+                            label="Projects"
+                            usage={deriveProjectUsage(subscription, projects.length)}
+                            caption="Projects across your workspace."
+                        />
+                    </div>
+                )}
 
                 {/* Search */}
                 <div className="relative mb-8 max-w-md group">

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Bot, ThumbsUp, ThumbsDown, Copy, RotateCcw, MoreHorizontal, FileCode } from "lucide-react";
+import { Send, Loader2, Bot, ThumbsUp, ThumbsDown, Copy, RotateCcw, MoreHorizontal, FileCode, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -7,7 +7,9 @@ import { StateView } from "@/components/StateView";
 import { format } from "date-fns";
 import { useStreamParser } from "../hooks/use-stream-parser";
 import { ChatEventRenderer } from './ChatEventRenderer';
-import { ChatEvent } from "@/lib/types";
+import { ChatEvent, SubscriptionResponse } from "@/lib/types";
+import { api } from "@/lib/api";
+import { deriveTokenUsage, formatNumber } from "@/lib/usage";
 
 function ChatLoadingSkeleton() {
   return (
@@ -58,8 +60,22 @@ interface ChatPanelProps {
 
 export function ChatPanel({ messages, onSendMessage, isStreaming, isLoading, readOnly }: ChatPanelProps) {
   const [input, setInput] = useState("");
+  const [subscription, setSubscription] = useState<SubscriptionResponse | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    let active = true;
+    api
+      .getCurrentSubscription()
+      .then((s) => active && setSubscription(s))
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const tokenUsage = deriveTokenUsage(subscription);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -104,6 +120,17 @@ export function ChatPanel({ messages, onSendMessage, isStreaming, isLoading, rea
         </div>
         <span className="font-display font-semibold text-sm text-foreground">Assistant</span>
         <span className="text-xs text-muted-foreground">· your build partner</span>
+        {subscription && (
+          <span
+            className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/40 px-2.5 py-1 text-xs text-muted-foreground"
+            title="AI tokens used this cycle"
+          >
+            <Zap className="h-3 w-3 text-primary" />
+            {tokenUsage.unlimited
+              ? "Unlimited"
+              : `${formatNumber(tokenUsage.used)} / ${formatNumber(tokenUsage.limit)}`}
+          </span>
+        )}
       </div>
 
       {/* Messages */}

@@ -13,6 +13,29 @@ export function LoginModal() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const DEMO_EMAIL = "demo@codeforge.com";
+  const DEMO_PASSWORD = "password123";
+
+  const runDemoLogin = async () => {
+    setEmail(DEMO_EMAIL);
+    setPassword(DEMO_PASSWORD);
+    setIsLoading(true);
+    try {
+      const response = await api.login({ username: DEMO_EMAIL, password: DEMO_PASSWORD });
+      setAuthToken(response.token);
+      if (response.user) setUserInfo(response.user);
+      toast({ title: "Demo session started", description: "Exploring CodeForge as the demo user." });
+      navigate("/projects");
+    } catch (error) {
+      toast({
+        title: "Demo unavailable",
+        description: error instanceof Error ? error.message : "Could not start the demo session.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -88,7 +111,7 @@ export function LoginModal() {
               Ship_
             </span>
           </h1>
-          <p className="text-slate-400 text-sm leading-relaxed max-w-sm mb-8">
+          <p className="text-slate-300 text-sm leading-relaxed max-w-sm mb-8">
             Plan, generate, test and deploy software from one intelligent engineering workspace.
           </p>
 
@@ -101,7 +124,7 @@ export function LoginModal() {
                 <span className="w-2.5 h-2.5 rounded-full bg-muted-foreground/25" />
                 <span className="w-2.5 h-2.5 rounded-full bg-muted-foreground/25" />
               </div>
-              <div className="flex items-center gap-1.5 font-mono text-[10px] text-slate-500">
+              <div className="flex items-center gap-1.5 font-mono text-[10px] text-slate-400">
                 <Terminal className="w-3 h-3 text-primary/80" />
                 <span>auth.session — zsh</span>
               </div>
@@ -113,14 +136,14 @@ export function LoginModal() {
 
             {/* Console body */}
             <div className="p-5 sm:p-6">
-              <p className="font-mono text-[11px] text-slate-500 mb-5">
+              <p className="font-mono text-[11px] text-slate-300 mb-5">
                 <span className="text-primary">$</span> authenticate --workspace
                 
               </p>
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-1">
-                  <label htmlFor="email" className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate-500">
+                  <label htmlFor="email" className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate-300">
                     email
                   </label>
                   <div className="flex items-center gap-2 border-b border-white/10 focus-within:border-primary-400 transition-colors">
@@ -130,7 +153,7 @@ export function LoginModal() {
                       placeholder="name@company.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="flex-1 h-10 bg-transparent border-0 rounded-none px-0 text-white font-mono text-sm placeholder:text-slate-600 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none"
+                      className="flex-1 h-10 bg-transparent border-0 rounded-none px-0 text-white font-mono text-sm placeholder:text-slate-500 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none"
                       disabled={isLoading}
                     />
                   </div>
@@ -138,10 +161,10 @@ export function LoginModal() {
 
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <label htmlFor="password" className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate-500">
+                    <label htmlFor="password" className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate-300">
                       password
                     </label>
-                    <a href="#forgot" className="font-mono text-[10px] text-slate-500 hover:text-primary transition-colors">
+                    <a href="#forgot" className="font-mono text-[10px] text-slate-400 hover:text-primary transition-colors">
                       reset?
                     </a>
                   </div>
@@ -152,7 +175,7 @@ export function LoginModal() {
                       placeholder="••••••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="flex-1 h-10 bg-transparent border-0 rounded-none px-0 text-white font-mono text-sm placeholder:text-slate-600 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none"
+                      className="flex-1 h-10 bg-transparent border-0 rounded-none px-0 text-white font-mono text-sm placeholder:text-slate-500 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none"
                       disabled={isLoading}
                     />
                   </div>
@@ -183,7 +206,7 @@ export function LoginModal() {
                   <span className="w-full border-t border-white/[0.06]" />
                 </div>
                 <div className="relative flex justify-center">
-                  <span className="bg-[#0d1a14] px-3 font-mono text-[10px] uppercase tracking-widest text-slate-600">or</span>
+                  <span className="bg-[#0d1a14] px-3 font-mono text-[10px] uppercase tracking-widest text-slate-400">or</span>
                 </div>
               </div>
 
@@ -207,7 +230,25 @@ export function LoginModal() {
                 continue with Google
               </Button>
 
-              <p className="text-center text-xs text-slate-500 mt-5 font-mono">
+              {/* Demo credentials */}
+              <button
+                type="button"
+                onClick={runDemoLogin}
+                disabled={isLoading}
+                className="group mt-4 w-full rounded-lg border border-dashed border-primary/30 bg-primary/[0.04] hover:bg-primary/[0.08] hover:border-primary/50 transition-all duration-200 p-3 text-left disabled:opacity-60"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary">try the demo</span>
+                  <span className="font-mono text-[10px] text-slate-400 group-hover:text-primary transition-colors">one&#8209;click&nbsp;&rarr;</span>
+                </div>
+                <div className="mt-1.5 font-mono text-[11px] text-slate-300">
+                  <span className="text-slate-400">user:</span> demo@codeforge.com
+                  <span className="mx-2 text-slate-600">·</span>
+                  <span className="text-slate-400">pass:</span> password123
+                </div>
+              </button>
+
+              <p className="text-center text-xs text-slate-400 mt-5 font-mono">
                 no account?{" "}
                 <Link to="/signup" className="text-primary hover:text-secondary transition-colors font-semibold">
                   create_workspace

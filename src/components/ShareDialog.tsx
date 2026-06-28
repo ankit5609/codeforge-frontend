@@ -9,6 +9,7 @@ import { api } from "@/lib/api";
 import { ProjectMember, ProjectRole } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { RoleBadge } from "@/components/RoleBadge";
 
 interface ShareDialogProps {
     projectId: string;
@@ -157,7 +158,7 @@ export function ShareDialog({ projectId, trigger, open, onOpenChange }: ShareDia
                                     </div>
 
                                     {member.role === 'OWNER' ? (
-                                        <span className="text-xs text-muted-foreground px-2 whitespace-nowrap">Owner</span>
+                                        <RoleBadge role="OWNER" />
                                     ) : (
                                         <Select
                                             defaultValue={member.role}

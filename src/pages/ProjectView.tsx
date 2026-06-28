@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Code, Eye, Loader2, LogOut, RotateCcw, Maximize2, RefreshCw, MoreVertical, Trash, Download, Edit, MessageSquare } from "lucide-react";
+import { Code, Eye, Loader2, LogOut, RotateCcw, Maximize2, RefreshCw, MoreVertical, Trash, Download, Edit, MessageSquare, Search, Keyboard } from "lucide-react";
+import { DeployStatus, DeployState } from "@/components/DeployStatus";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { ChatPanel, ChatMessage } from "@/components/ChatPanel";
 import { CodePanel } from "@/components/CodePanel";
@@ -36,6 +37,16 @@ export function ProjectView() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [runtimeError, setRuntimeError] = useState<RuntimeError | null>(null);
   const [project, setProject] = useState<ProjectResponse | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Live deploy/build status shown in the workspace header.
+  const deployState: DeployState = runtimeError
+    ? "error"
+    : isStreaming
+      ? "building"
+      : project
+        ? "ready"
+        : "idle";
 
   // Rename state
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
@@ -168,6 +179,8 @@ export function ProjectView() {
           )
         );
         setIsStreaming(false);
+        // Newly generated files exist on the server now — refresh the file tree.
+        setRefreshKey((k) => k + 1);
       },
       (error) => {
         // Handle error
@@ -366,6 +379,25 @@ Please analyze this error and fix the code to resolve it.`;
         </div>
 
         <div className="flex items-center gap-2">
+          <DeployStatus state={deployState} className="hidden lg:inline-flex" />
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new Event("open-command-palette"))}
+            className="hidden md:inline-flex items-center gap-2 rounded-full border border-border/60 bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Search className="h-3.5 w-3.5" />
+            Search
+            <kbd className="rounded border border-border bg-background px-1 text-[10px]">⌘K</kbd>
+          </button>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Keyboard shortcuts"
+            onClick={() => window.dispatchEvent(new Event("open-shortcuts"))}
+            className="hidden md:inline-flex h-9 w-9 rounded-full text-muted-foreground hover:text-foreground"
+          >
+            <Keyboard className="h-4 w-4" />
+          </Button>
           {project?.role && (
             <span className={cn(
               "text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full border hidden md:inline",
@@ -401,6 +433,9 @@ Please analyze this error and fix the code to resolve it.`;
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => navigate("/settings")} className="cursor-pointer">
+                <Edit className="w-4 h-4 mr-2" /> Settings
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive cursor-pointer">
                 <LogOut className="w-4 h-4 mr-2" /> Sign out
               </DropdownMenuItem>
@@ -425,7 +460,7 @@ Please analyze this error and fix the code to resolve it.`;
                 />
               </div>
               <div className={cn("absolute inset-0", mobileTab !== "code" && "hidden")}>
-                <CodePanel key={projectId} projectId={projectId} updatedFiles={updatedFiles} />
+                <CodePanel key={projectId} projectId={projectId} updatedFiles={updatedFiles} refreshKey={refreshKey} />
               </div>
               <div className={cn("absolute inset-0", mobileTab !== "preview" && "hidden")}>
                 <PreviewPanel
@@ -484,7 +519,7 @@ Please analyze this error and fix the code to resolve it.`;
               <div className="h-full">
                 <div className="h-full relative">
                   <div className={cn("h-full absolute inset-0", viewMode !== "code" && "hidden")}>
-                    <CodePanel key={projectId} projectId={projectId} updatedFiles={updatedFiles} />
+                    <CodePanel key={projectId} projectId={projectId} updatedFiles={updatedFiles} refreshKey={refreshKey} />
                   </div>
                   <div className={cn("h-full absolute inset-0", viewMode !== "preview" && "hidden")}>
                     <PreviewPanel
