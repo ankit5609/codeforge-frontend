@@ -4,52 +4,55 @@
 
 @layer base {
   :root {
-    --background: 222 47% 6%;
-    --foreground: 210 40% 96%;
+    /* Forest Graphite — warm editorial dark theme */
+    --background: 156 22% 8%;
+    --foreground: 150 14% 92%;
 
-    --card: 222 47% 8%;
-    --card-foreground: 210 40% 96%;
+    --card: 156 16% 11%;
+    --card-foreground: 150 14% 92%;
 
-    --popover: 222 47% 10%;
-    --popover-foreground: 210 40% 96%;
+    --popover: 156 16% 12%;
+    --popover-foreground: 150 14% 92%;
 
-    --primary: 217 91% 60%;
-    --primary-foreground: 222 47% 6%;
+    /* Emerald accent */
+    --primary: 160 72% 42%;
+    --primary-foreground: 156 30% 6%;
 
-    --secondary: 260 60% 55%;
-    --secondary-foreground: 210 40% 98%;
+    /* Soft mint secondary */
+    --secondary: 156 52% 56%;
+    --secondary-foreground: 156 30% 6%;
 
-    --muted: 222 30% 14%;
-    --muted-foreground: 215 20% 55%;
+    --muted: 155 12% 14%;
+    --muted-foreground: 150 7% 58%;
 
-    --accent: 260 50% 50%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 156 60% 50%;
+    --accent-foreground: 156 30% 6%;
 
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 8 72% 54%;
+    --destructive-foreground: 150 14% 96%;
 
-    --border: 222 30% 18%;
-    --input: 222 30% 16%;
-    --ring: 217 91% 60%;
+    --border: 155 10% 18%;
+    --input: 155 10% 16%;
+    --ring: 160 72% 42%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
     /* Custom tokens */
-    --panel: 222 40% 9%;
-    --panel-hover: 222 35% 12%;
-    --panel-active: 222 35% 15%;
-    --chat-user: 217 70% 25%;
-    --chat-ai: 260 50% 20%;
-    --file-active: 217 60% 20%;
-    --syntax-keyword: 280 70% 70%;
-    --syntax-string: 140 60% 60%;
-    --syntax-number: 35 90% 65%;
-    --syntax-comment: 220 15% 45%;
-    --syntax-function: 200 80% 65%;
-    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%) 0%, hsl(260 60% 55%) 100%);
-    --gradient-panel: linear-gradient(180deg, hsl(222 47% 10%) 0%, hsl(222 47% 6%) 100%);
-    --shadow-glow: 0 0 20px hsl(217 91% 60% / 0.15);
-    --shadow-panel: 0 4px 24px hsl(0 0% 0% / 0.4);
+    --panel: 156 16% 11%;
+    --panel-hover: 156 14% 15%;
+    --panel-active: 156 16% 18%;
+    --chat-user: 160 34% 16%;
+    --chat-ai: 156 14% 12%;
+    --file-active: 160 40% 16%;
+    --syntax-keyword: 156 60% 62%;
+    --syntax-string: 38 70% 64%;
+    --syntax-number: 28 78% 62%;
+    --syntax-comment: 150 8% 44%;
+    --syntax-function: 168 64% 58%;
+    --gradient-primary: linear-gradient(135deg, hsl(160 72% 44%) 0%, hsl(156 56% 56%) 100%);
+    --gradient-panel: linear-gradient(180deg, hsl(156 16% 12%) 0%, hsl(156 22% 8%) 100%);
+    --shadow-glow: 0 0 28px hsl(160 72% 44% / 0.16);
+    --shadow-panel: 0 8px 30px hsl(156 40% 3% / 0.5);
   }
 }
 
@@ -63,7 +66,17 @@
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
 
-  /* Scrollbar styling */
+  /* Editorial serif display headings */
+  h1, h2, h3, .font-display {
+    font-family: 'Fraunces', 'Georgia', serif;
+    letter-spacing: -0.015em;
+    font-optical-sizing: auto;
+  }
+
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -84,7 +97,7 @@
 
 @layer components {
   .glass-panel {
-    @apply bg-panel border border-border/50 backdrop-blur-sm;
+    @apply bg-panel border border-border/60;
     box-shadow: var(--shadow-panel);
   }
 
@@ -100,11 +113,11 @@
   }
 
   .streaming-cursor {
-    @apply inline-block w-2 h-5 bg-primary animate-pulse ml-0.5;
+    @apply inline-block w-1.5 h-4 bg-primary/70 animate-pulse ml-0.5 rounded-sm;
   }
 
   .file-tree-item {
-    @apply flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors;
+    @apply flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors;
     @apply hover:bg-panel-hover text-muted-foreground hover:text-foreground;
   }
 
@@ -113,7 +126,7 @@
   }
 
   .chat-message {
-    @apply p-4 rounded-lg max-w-[85%] animate-fade-in;
+    @apply p-4 rounded-2xl max-w-[85%] animate-fade-in;
   }
 
   .chat-message.user {
@@ -129,16 +142,16 @@
   }
 
   .panel-header {
-    @apply h-12 flex items-center justify-between px-4 border-b border-border/50 bg-panel;
+    @apply h-12 flex items-center justify-between px-4 border-b border-border/60 bg-panel;
   }
 
   .tab-button {
-    @apply px-4 py-2 text-sm font-medium transition-all rounded-md;
+    @apply px-4 py-2 text-sm font-medium transition-all rounded-lg;
     @apply text-muted-foreground hover:text-foreground hover:bg-panel-hover;
   }
 
   .tab-button.active {
-    @apply bg-primary/20 text-primary;
+    @apply bg-primary/15 text-primary;
   }
 }
 
@@ -151,122 +164,63 @@
     animation: slideUp 0.3s ease-out;
   }
 
-  .animate-stream {
-    animation: stream 0.05s ease-out;
-  }
-
   @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(8px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
   @keyframes slideUp {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
-  @keyframes stream {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
-
+  /* Subtle warm paper grain instead of techy grid */
   .dev-grid {
-    background-image: 
-      linear-gradient(to right, rgba(255, 255, 255, 0.005) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255, 255, 255, 0.005) 1px, transparent 1px);
-    background-size: 48px 48px;
+    background-image: radial-gradient(hsl(156 30% 40% / 0.05) 1px, transparent 1px);
+    background-size: 22px 22px;
     background-position: center;
   }
 
   .premium-card {
-    background: linear-gradient(180deg, rgba(11, 15, 25, 0.96) 0%, rgba(7, 9, 16, 0.98) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    box-shadow: 
-      0 0 0 1px rgba(255, 255, 255, 0.02) inset,
-      0 1px 0 0 rgba(255, 255, 255, 0.05) inset,
-      0 12px 40px -8px rgba(0, 0, 0, 0.75),
-      0 40px 80px -20px rgba(0, 0, 0, 0.95),
-      0 0 60px -5px rgba(99, 102, 241, 0.12);
+    background: linear-gradient(180deg, hsl(156 16% 12% / 0.97) 0%, hsl(156 20% 9% / 0.98) 100%);
+    border: 1px solid hsl(150 14% 92% / 0.07);
+    box-shadow:
+      0 1px 0 0 hsl(150 14% 92% / 0.04) inset,
+      0 14px 40px -12px hsl(156 50% 2% / 0.7),
+      0 0 50px -10px hsl(160 72% 44% / 0.1);
   }
 
   @keyframes orbFloat1 {
-    0% {
-      transform: translate(0px, 0px) scale(1);
-    }
-    33% {
-      transform: translate(40px, -60px) scale(1.15);
-    }
-    66% {
-      transform: translate(-30px, 30px) scale(0.9);
-    }
-    100% {
-      transform: translate(0px, 0px) scale(1);
-    }
+    0% { transform: translate(0px, 0px) scale(1); }
+    33% { transform: translate(40px, -60px) scale(1.15); }
+    66% { transform: translate(-30px, 30px) scale(0.9); }
+    100% { transform: translate(0px, 0px) scale(1); }
   }
 
   @keyframes orbFloat2 {
-    0% {
-      transform: translate(0px, 0px) scale(1);
-    }
-    50% {
-      transform: translate(-60px, 50px) scale(1.1);
-    }
-    100% {
-      transform: translate(0px, 0px) scale(1);
-    }
+    0% { transform: translate(0px, 0px) scale(1); }
+    50% { transform: translate(-60px, 50px) scale(1.1); }
+    100% { transform: translate(0px, 0px) scale(1); }
   }
 
   @keyframes logoFloat {
-    0%, 100% {
-      transform: translateY(0);
-    }
-    50% {
-      transform: translateY(-6px);
-    }
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
   }
 
   @keyframes logoGlow {
     0%, 100% {
-      box-shadow: 0 0 24px 2px rgba(124, 58, 237, 0.1);
-      border-color: rgba(255, 255, 255, 0.06);
+      box-shadow: 0 0 24px 2px hsl(160 72% 44% / 0.1);
+      border-color: hsl(150 14% 92% / 0.06);
     }
     50% {
-      box-shadow: 0 0 36px 6px rgba(124, 58, 237, 0.25);
-      border-color: rgba(139, 92, 246, 0.3);
+      box-shadow: 0 0 36px 6px hsl(160 72% 44% / 0.26);
+      border-color: hsl(160 72% 44% / 0.3);
     }
   }
 
-  .animate-orb-1 {
-    animation: orbFloat1 25s infinite alternate ease-in-out;
-  }
-
-  .animate-orb-2 {
-    animation: orbFloat2 30s infinite alternate ease-in-out;
-  }
-
-  .animate-logo-float {
-    animation: logoFloat 6s infinite ease-in-out;
-  }
-
-  .animate-logo-glow {
-    animation: logoGlow 4s infinite ease-in-out;
-  }
+  .animate-orb-1 { animation: orbFloat1 25s infinite alternate ease-in-out; }
+  .animate-orb-2 { animation: orbFloat2 30s infinite alternate ease-in-out; }
+  .animate-logo-float { animation: logoFloat 6s infinite ease-in-out; }
+  .animate-logo-glow { animation: logoGlow 4s infinite ease-in-out; }
 }

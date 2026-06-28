@@ -103,7 +103,7 @@ export function RuntimeErrorAlert({ error, onDismiss, onFix }: RuntimeErrorAlert
                     >
                         <Wrench className="w-3.5 h-3.5" />
                         Fix issues
-                        <kbd className="hidden sm:inline-flex h-4 items-center gap-1 rounded border border-blue-400/30 bg-blue-500/20 px-1 font-mono text-[9px] font-medium text-blue-100 opacity-100">
+                        <kbd className="hidden sm:inline-flex h-4 items-center gap-1 rounded border border-blue-400/30 bg-blue-500/20 px-1 font-mono text-[9px] font-medium text-foreground opacity-100">
                             F
                         </kbd>
                     </Button>

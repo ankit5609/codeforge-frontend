@@ -2,10 +2,41 @@ import { useState, useRef, useEffect } from "react";
 import { Send, Loader2, Bot, ThumbsUp, ThumbsDown, Copy, RotateCcw, MoreHorizontal, FileCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
+import { StateView } from "@/components/StateView";
 import { format } from "date-fns";
 import { useStreamParser } from "../hooks/use-stream-parser";
 import { ChatEventRenderer } from './ChatEventRenderer';
 import { ChatEvent } from "@/lib/types";
+
+function ChatLoadingSkeleton() {
+  return (
+    <div className="flex flex-col gap-6 p-5" aria-hidden="true">
+      {/* incoming bubble */}
+      <div className="space-y-2.5">
+        <div className="flex items-center gap-2">
+          <Skeleton className="w-6 h-6 rounded-lg" />
+          <Skeleton className="h-3.5 w-24 rounded" />
+        </div>
+        <Skeleton className="h-3 w-[85%] rounded" />
+        <Skeleton className="h-3 w-[70%] rounded" />
+        <Skeleton className="h-3 w-[55%] rounded" />
+      </div>
+      {/* outgoing bubble */}
+      <div className="flex flex-col items-end gap-2">
+        <Skeleton className="h-10 w-[60%] rounded-2xl rounded-tr-none" />
+      </div>
+      <div className="space-y-2.5">
+        <div className="flex items-center gap-2">
+          <Skeleton className="w-6 h-6 rounded-lg" />
+          <Skeleton className="h-3.5 w-20 rounded" />
+        </div>
+        <Skeleton className="h-3 w-[78%] rounded" />
+        <Skeleton className="h-20 w-full rounded-xl" />
+      </div>
+    </div>
+  );
+}
 
 export interface ChatMessage {
   id: string;
@@ -66,22 +97,40 @@ export function ChatPanel({ messages, onSendMessage, isStreaming, isLoading, rea
 
   return (
     <div className="flex flex-col h-full bg-background">
+      {/* Panel header */}
+      <div className="h-12 shrink-0 flex items-center gap-2 px-4 border-b border-border/60 bg-panel">
+        <div className="w-6 h-6 rounded-lg bg-primary/15 flex items-center justify-center">
+          <Bot className="w-3.5 h-3.5 text-primary" />
+        </div>
+        <span className="font-display font-semibold text-sm text-foreground">Assistant</span>
+        <span className="text-xs text-muted-foreground">· your build partner</span>
+      </div>
+
       {/* Messages */}
       <div className="flex-1 overflow-y-auto">
         {isLoading ? (
-          <div className="flex items-center justify-center h-full">
-            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-          </div>
+          <ChatLoadingSkeleton />
         ) : messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center p-8">
-            <div className="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center mb-4">
-              <Bot className="w-7 h-7 text-primary" />
-            </div>
-            <h3 className="text-base font-medium mb-1">Start a conversation</h3>
-            <p className="text-sm text-muted-foreground max-w-xs">
-              Describe what you want to build or modify
-            </p>
-          </div>
+          <StateView
+            icon={Bot}
+            title="Let's build something"
+            description="Describe the feature, page, or change you have in mind and I'll get to work."
+          >
+            {!readOnly && (
+              <div className="flex flex-wrap items-center justify-center gap-2 max-w-sm pt-1">
+                {["Build a landing page", "Add a dashboard", "Create a contact form"].map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => onSendMessage(s)}
+                    className="text-xs px-3 py-1.5 rounded-full border border-border/60 bg-muted/30 text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/5 transition-colors"
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
+          </StateView>
         ) : (
           <div className="flex flex-col">
             {messages.map((message) => (
@@ -94,7 +143,7 @@ export function ChatPanel({ messages, onSendMessage, isStreaming, isLoading, rea
       </div>
 
       {/* Input Area */}
-      <div className="shrink-0 p-3 border-t border-border/50 bg-card">
+      <div className="shrink-0 p-3 border-t border-border/60 bg-card">
         <form onSubmit={handleSubmit} className="relative">
           <Textarea
             ref={textareaRef}
@@ -109,6 +158,7 @@ export function ChatPanel({ messages, onSendMessage, isStreaming, isLoading, rea
           <Button
             type="submit"
             size="icon"
+            aria-label="Send message"
             disabled={!input.trim() || isStreaming || readOnly}
             className="absolute right-2 bottom-2 h-8 w-8 rounded-lg"
           >
@@ -122,7 +172,7 @@ export function ChatPanel({ messages, onSendMessage, isStreaming, isLoading, rea
 
         <div className="flex items-center justify-between mt-2 px-1">
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <span>✨ AI-Powered Design System</span>
+            <span>Press Enter to send, Shift+Enter for a new line</span>
           </div>
           {isStreaming && (
             <span className="text-xs text-muted-foreground flex items-center gap-1 font-medium">
@@ -183,16 +233,16 @@ function MessageItem({ message, isStreaming }: { message: ChatMessage, isStreami
             {/* Action buttons for assistant message */}
             {!message.isStreaming && eventsToRender.length > 0 && (
               <div className="flex items-center gap-1 pt-2">
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary">
+                <Button variant="ghost" size="icon" aria-label="Retry response" className="h-8 w-8 text-muted-foreground hover:text-primary">
                   <RotateCcw className="w-3.5 h-3.5" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary">
+                <Button variant="ghost" size="icon" aria-label="Good response" className="h-8 w-8 text-muted-foreground hover:text-primary">
                   <ThumbsUp className="w-3.5 h-3.5" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary">
+                <Button variant="ghost" size="icon" aria-label="Bad response" className="h-8 w-8 text-muted-foreground hover:text-primary">
                   <ThumbsDown className="w-3.5 h-3.5" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary">
+                <Button variant="ghost" size="icon" aria-label="Copy message" className="h-8 w-8 text-muted-foreground hover:text-primary">
                   <Copy className="w-3.5 h-3.5" />
                 </Button>
               </div>

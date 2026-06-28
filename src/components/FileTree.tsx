@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ChevronRight, ChevronDown, File, Folder, FolderOpen, FileCode, FileJson, FileText, Image } from "lucide-react";
 import { FileNode } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { StateView } from "@/components/StateView";
 
 interface FileTreeProps {
   files: FileNode[];
@@ -41,19 +42,19 @@ const getFileColor = (name: string) => {
   switch (ext) {
     case "ts":
     case "tsx":
-      return "text-blue-400";
+      return "text-primary";
     case "js":
     case "jsx":
-      return "text-yellow-400";
+      return "text-secondary";
     case "json":
       return "text-amber-400";
     case "css":
     case "scss":
-      return "text-pink-400";
+      return "text-secondary";
     case "html":
-      return "text-orange-400";
+      return "text-amber-500";
     case "md":
-      return "text-gray-400";
+      return "text-muted-foreground";
     default:
       return "text-muted-foreground";
   }
@@ -72,7 +73,7 @@ function FileTreeItem({ node, depth, selectedPath, onSelectFile }: FileTreeItemP
   const isDirectory = node.type === "directory";
   const isSelected = selectedPath === node.path;
   const FileIcon = isDirectory ? (isExpanded ? FolderOpen : Folder) : getFileIcon(node.name);
-  const fileColor = isDirectory ? "text-amber-400" : getFileColor(node.name);
+  const fileColor = isDirectory ? "text-secondary/80" : getFileColor(node.name);
 
   const handleClick = () => {
     if (isDirectory) {
@@ -85,12 +86,22 @@ function FileTreeItem({ node, depth, selectedPath, onSelectFile }: FileTreeItemP
   return (
     <div>
       <div
+        role="button"
+        tabIndex={0}
+        aria-expanded={isDirectory ? isExpanded : undefined}
+        aria-label={node.name}
         className={cn(
-          "file-tree-item",
+          "file-tree-item focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
           isSelected && "active"
         )}
         style={{ paddingLeft: `${depth * 12 + 8}px` }}
         onClick={handleClick}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleClick();
+          }
+        }}
       >
         {isDirectory ? (
           isExpanded ? (
@@ -138,9 +149,12 @@ export function FileTree({ files, selectedPath, onSelectFile, isLoading }: FileT
 
   if (files.length === 0) {
     return (
-      <div className="p-4 text-center text-muted-foreground text-sm">
-        No files yet
-      </div>
+      <StateView
+        icon={FolderOpen}
+        title="No files yet"
+        description="Files appear here once the assistant generates them."
+        compact
+      />
     );
   }
 

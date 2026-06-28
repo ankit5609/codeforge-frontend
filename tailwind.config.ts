@@ -92,7 +92,10 @@ export default {
         pulse: "pulse 1s ease-in-out infinite",
       },
       fontFamily: {
+        sans: ["Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
         mono: ["JetBrains Mono", "Fira Code", "Monaco", "Consolas", "monospace"],
+        display: ["Fraunces", "Georgia", "serif"],
+        serif: ["Fraunces", "Georgia", "serif"],
       },
     },
   },

@@ -1,4 +1,7 @@
-import { ChatMessage, DeployResponse, FileNode, LoginCredentials, LoginResponse, ProjectSummaryResponse, ProjectRequest, ProjectResponse, ProjectMember, ProjectRole, SignupRequest, AuthResponse } from "./types";
+import { ChatMessage, DeployResponse, FileNode, LoginCredentials, LoginResponse, ProjectSummaryResponse, ProjectRequest, ProjectResponse, ProjectMember, ProjectRole, SignupRequest, AuthResponse, SubscriptionResponse, CheckoutResponse, PortalResponse } from "./types";
+export type { FileNode };
+
+
 
 const BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "http://localhost:8080" : "");
 
@@ -377,6 +380,47 @@ export const api = {
       });
 
     return () => controller.abort();
-  }
+  },
+
+  async getCurrentSubscription(): Promise<SubscriptionResponse> {
+    const response = await fetch(`${BASE_URL}/api/v1/account/me/subscription`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch subscription");
+    }
+
+    return response.json();
+  },
+
+  async createCheckoutSession(planId: number): Promise<CheckoutResponse> {
+    const response = await fetch(`${BASE_URL}/api/v1/account/payments/checkout`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+      body: JSON.stringify({ planId }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to initiate checkout");
+    }
+
+    return response.json();
+  },
+
+  async createPortalSession(): Promise<PortalResponse> {
+    const response = await fetch(`${BASE_URL}/api/v1/account/payments/portal`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to open billing portal");
+    }
+
+    return response.json();
+  },
 
 };
+

@@ -2,8 +2,10 @@ import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { json } from '@codemirror/lang-json';
 import { css } from '@codemirror/lang-css';
-import { FileCode, Loader2 } from "lucide-react";
+import { FileCode } from "lucide-react";
 import {githubDark} from '@uiw/codemirror-theme-github';
+import { Skeleton } from "@/components/ui/skeleton";
+import { StateView } from "@/components/StateView";
 
 interface CodeEditorProps {
   content: string;
@@ -12,21 +14,32 @@ interface CodeEditorProps {
   onCodeChange?: (newCode: string) => void;
 }
 
+function CodeLoadingSkeleton() {
+  const widths = ["40%", "70%", "55%", "85%", "30%", "65%", "75%", "45%", "60%", "80%", "35%", "50%"];
+  return (
+    <div className="h-full w-full p-4 space-y-3 border-l bg-background" aria-hidden="true">
+      {widths.map((w, i) => (
+        <div key={i} className="flex items-center gap-3">
+          <Skeleton className="h-3 w-6 rounded shrink-0 opacity-50" />
+          <Skeleton className="h-3 rounded" style={{ width: w }} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function CodeEditor({ content, filePath, isLoading, onCodeChange }: CodeEditorProps) {
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <CodeLoadingSkeleton />;
   }
 
   if (!filePath) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-center p-8">
-        <FileCode className="w-12 h-12 text-muted-foreground/50 mb-4" />
-        <h3 className="text-lg font-medium">No file selected</h3>
-      </div>
+      <StateView
+        icon={FileCode}
+        title="No file selected"
+        description="Pick a file from the tree to view its contents."
+      />
     );
   }
 

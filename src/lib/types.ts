@@ -106,3 +106,41 @@ export interface AuthResponse {
     plan?: any;
   };
 }
+
+// ============= Billing / Subscription =============
+export interface PlanDto {
+  id: number | null;
+  name: string;
+  maxProjects: number;
+  maxTokensPerDay: number;
+  unlimitedAi: boolean;
+  price: string;
+}
+
+export type SubscriptionStatus =
+  | "NONE"
+  | "ACTIVE"
+  | "TRIALING"
+  | "PAST_DUE"
+  | "INCOMPLETE"
+  | "DEMO_LOCKED";
+
+export interface SubscriptionResponse {
+  plan: PlanDto | null;
+  status: SubscriptionStatus;
+  currentPeriodEnd: string | null;
+  tokensUsedThisCycle: number;
+  message: string | null;
+}
+
+export interface CheckoutRequest {
+  planId: number;
+}
+
+export interface CheckoutResponse {
+  checkoutUrl: string;
+}
+
+export interface PortalResponse {
+  portalUrl: string;
+}

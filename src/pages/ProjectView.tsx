@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Code, Sparkles, LogOut, RotateCcw, Maximize2, RefreshCw, MoreVertical, Trash, Download, Edit } from "lucide-react";
+import { Code, Eye, Loader2, LogOut, RotateCcw, Maximize2, RefreshCw, MoreVertical, Trash, Download, Edit, MessageSquare } from "lucide-react";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { ChatPanel, ChatMessage } from "@/components/ChatPanel";
 import { CodePanel } from "@/components/CodePanel";
@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { api, isAuthenticated, removeAuthToken, getUserInfo, removeUserInfo } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 import { RuntimeErrorAlert, RuntimeError } from "@/components/RuntimeErrorAlert";
@@ -19,15 +20,18 @@ import { ProjectResponse } from "@/lib/types";
 import { ShareDialog } from "@/components/ShareDialog";
 
 type ViewMode = "code" | "preview";
+type MobileTab = "chat" | "code" | "preview";
 
 export function ProjectView() {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("code");
+  const [mobileTab, setMobileTab] = useState<MobileTab>("chat");
   const [updatedFiles, setUpdatedFiles] = useState<Map<string, string>>(new Map());
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [runtimeError, setRuntimeError] = useState<RuntimeError | null>(null);
@@ -290,175 +294,214 @@ Please analyze this error and fix the code to resolve it.`;
   }
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-background">
-      {/* Header */}
-      <header className="h-12 shrink-0 border-b border-border/50 bg-panel flex items-center justify-between px-3">
-        <div className="flex items-center gap-2">
+    <div className="h-dvh flex flex-col overflow-hidden bg-background">
+      <a href="#workspace-main" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 focus:bg-card focus:px-3 focus:py-1.5 focus:rounded-md focus:border focus:border-border focus:text-sm">Skip to content</a>
+      {/* Workspace header */}
+      <header className="h-14 shrink-0 border-b border-border/60 bg-card/70 backdrop-blur-md flex items-center justify-between px-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <button onClick={() => navigate("/projects")} className="text-muted-foreground hover:text-foreground transition-colors text-sm shrink-0">
+            ← Projects
+          </button>
+          <span className="w-px h-5 bg-border shrink-0" />
           {project ? (
             <>
               <div
-                className="w-7 h-7 rounded-sm shadow-sm"
+                className="w-7 h-7 rounded-lg shadow-sm border border-white/10 shrink-0"
                 style={generateGradient(project.name)}
               />
-              <span className="font-semibold text-sm">{project.name}</span>
+              <span className="font-display font-semibold text-base text-foreground truncate">{project.name}</span>
             </>
           ) : (
             <>
-              <div className="w-7 h-7 rounded-lg bg-primary/20 flex items-center justify-center">
-                <Sparkles className="w-3.5 h-3.5 text-primary" />
-              </div>
-              <span className="font-semibold text-sm">Loading...</span>
+              <Loader2 className="w-4 h-4 text-primary animate-spin" />
+              <span className="font-display font-medium text-base text-muted-foreground">Loading…</span>
             </>
           )}
-          <span className="text-muted-foreground text-xs ml-2">Previewing last saved version</span>
           {project?.role !== 'VIEWER' && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-6 w-6 ml-2 text-muted-foreground">
+                <Button variant="ghost" size="icon" aria-label="Project options" className="h-7 w-7 text-muted-foreground hover:text-foreground rounded-lg shrink-0">
                   <MoreVertical className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start">
-                <DropdownMenuItem onClick={openRenameDialog}>
-                  <Edit className="w-4 h-4 mr-2" />
-                  Rename
+                <DropdownMenuItem onClick={openRenameDialog} className="cursor-pointer">
+                  <Edit className="w-4 h-4 mr-2" /> Rename
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleDownloadProject}>
-                  <Download className="w-4 h-4 mr-2" />
-                  Download
+                <DropdownMenuItem onClick={handleDownloadProject} className="cursor-pointer">
+                  <Download className="w-4 h-4 mr-2" /> Download
                 </DropdownMenuItem>
-                <DropdownMenuItem className="text-red-500 focus:text-red-500" onClick={handleDeleteProject}>
-                  <Trash className="w-4 h-4 mr-2" />
-                  Delete
+                <DropdownMenuItem className="text-destructive focus:text-destructive cursor-pointer" onClick={handleDeleteProject}>
+                  <Trash className="w-4 h-4 mr-2" /> Delete
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           )}
         </div>
 
-        <div className="flex items-center gap-1">
-          
-
-          {/* View Mode Toggle */}
-          <div className="flex items-center bg-muted/30 rounded-lg p-0.5 mx-2">
+        <div className="hidden md:flex items-center">
+          {/* View Mode Toggle (desktop) */}
+          <div className="flex items-center bg-muted/50 border border-border/60 rounded-full p-1">
             <button
               onClick={() => setViewMode("preview")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-all rounded-md ${viewMode === "preview"
-                ? "bg-primary text-primary-foreground"
+              className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium transition-all rounded-full ${viewMode === "preview"
+                ? "bg-primary/15 text-primary"
                 : "text-muted-foreground hover:text-foreground"
                 }`}
             >
-              <Sparkles className="w-3 h-3" />
+              <Eye className="w-3.5 h-3.5" />
               Preview
             </button>
             <button
               onClick={() => setViewMode("code")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-all rounded-md ${viewMode === "code"
-                ? "bg-primary text-primary-foreground"
+              className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium transition-all rounded-full ${viewMode === "code"
+                ? "bg-primary/15 text-primary"
                 : "text-muted-foreground hover:text-foreground"
                 }`}
             >
-              <Code className="w-3 h-3" />
+              <Code className="w-3.5 h-3.5" />
               Code
             </button>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          {project && (
-            <div className="flex items-center gap-2 px-2 py-1 bg-muted/30 rounded-full border border-border/50">
-              <Avatar className="h-6 w-6 border border-primary/20">
-                <AvatarFallback className="text-[10px] bg-primary/10 text-primary font-semibold">
-                  {(() => {
-                    const userInfo = getUserInfo();
-                    if (userInfo?.name) {
-                      return userInfo.name.charAt(0).toUpperCase();
-                    }
-                    return "U";
-                  })()}
-                </AvatarFallback>
-              </Avatar>
-              {project.role && (
-                <span className={cn(
-                  "text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded",
-                  project.role === 'OWNER' ? "bg-primary/10 text-primary" :
-                    project.role === 'EDITOR' ? "bg-amber-500/10 text-amber-600" :
-                      "bg-muted text-muted-foreground"
-                )}>
-                  {project.role}
-                </span>
-              )}
-            </div>
+          {project?.role && (
+            <span className={cn(
+              "text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full border hidden md:inline",
+              project.role === 'OWNER' ? "bg-primary/10 text-primary border-primary/20" :
+                project.role === 'EDITOR' ? "bg-amber-500/10 text-amber-500 border-amber-500/20" :
+                  "bg-muted text-muted-foreground border-border"
+            )}>
+              {project.role}
+            </span>
           )}
 
           <ShareDialog
             projectId={projectId}
             trigger={
-              <Button variant="outline" size="sm" className="h-8 text-xs font-medium" disabled={project?.role === 'VIEWER'}>
+              <Button variant="outline" size="sm" className="h-9 text-sm rounded-full px-4" disabled={project?.role === 'VIEWER'}>
                 Share
               </Button>
             }
           />
           {project?.role !== 'VIEWER' && (
-            <>
-              <Button variant="outline" size="sm" className="h-8 text-xs">
-                Upgrade
-              </Button>
-              <Button size="sm" className="h-8 text-xs bg-primary hover:bg-primary/90">
-                Publish
-              </Button>
-            </>
+            <Button size="sm" className="hidden sm:inline-flex h-9 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-5">
+              Publish
+            </Button>
           )}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleLogout}
-            className="h-8 w-8 text-muted-foreground hover:text-foreground"
-          >
-            <LogOut className="w-4 h-4" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" aria-label="Account menu" className="h-9 w-9 rounded-full">
+                <Avatar className="h-7 w-7">
+                  <AvatarFallback className="text-xs bg-primary/15 text-primary font-semibold">
+                    {(getUserInfo()?.name ? getUserInfo()!.name.charAt(0).toUpperCase() : "U")}
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive cursor-pointer">
+                <LogOut className="w-4 h-4 mr-2" /> Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-hidden">
-        <ResizablePanelGroup direction="horizontal" className="h-full">
-          {/* Chat Panel */}
-          <ResizablePanel defaultSize={35} minSize={25} maxSize={50}>
-            <div className="h-full border-r border-border/50 bg-panel">
-              <ChatPanel
-                messages={messages}
-                onSendMessage={handleSendMessage}
-                isStreaming={isStreaming}
-                isLoading={isLoadingHistory}
-                readOnly={project?.role === 'VIEWER'}
-              />
-            </div>
-          </ResizablePanel>
-
-          <ResizableHandle className="w-px bg-border/50 hover:bg-primary/50 transition-colors" />
-
-          {/* Code/Preview Panel */}
-          <ResizablePanel defaultSize={65} minSize={50} maxSize={75}>
-            <div className="h-full">
-              <div className="h-full relative">
-                <div className={cn("h-full absolute inset-0", viewMode !== "code" && "hidden")}>
-                  <CodePanel key={projectId} projectId={projectId} updatedFiles={updatedFiles} />
-                </div>
-                <div className={cn("h-full absolute inset-0", viewMode !== "preview" && "hidden")}>
-                  <PreviewPanel
-                    key={projectId}
-                    projectId={projectId}
-                    runtimeError={runtimeError}
-                    onDismiss={() => setRuntimeError(null)}
-                    onFix={handleFixError}
-                  />
-                </div>
+      <main id="workspace-main" className="flex-1 overflow-hidden">
+        {isMobile ? (
+          /* Mobile: single visible panel with a bottom tab bar */
+          <div className="h-full flex flex-col">
+            <div className="flex-1 relative overflow-hidden">
+              <div className={cn("absolute inset-0 bg-panel", mobileTab !== "chat" && "hidden")}>
+                <ChatPanel
+                  messages={messages}
+                  onSendMessage={handleSendMessage}
+                  isStreaming={isStreaming}
+                  isLoading={isLoadingHistory}
+                  readOnly={project?.role === 'VIEWER'}
+                />
+              </div>
+              <div className={cn("absolute inset-0", mobileTab !== "code" && "hidden")}>
+                <CodePanel key={projectId} projectId={projectId} updatedFiles={updatedFiles} />
+              </div>
+              <div className={cn("absolute inset-0", mobileTab !== "preview" && "hidden")}>
+                <PreviewPanel
+                  key={projectId}
+                  projectId={projectId}
+                  runtimeError={runtimeError}
+                  onDismiss={() => setRuntimeError(null)}
+                  onFix={handleFixError}
+                />
               </div>
             </div>
-          </ResizablePanel>
-        </ResizablePanelGroup>
-      </div>
+            <nav
+              aria-label="Workspace views"
+              className="shrink-0 grid grid-cols-3 border-t border-border/60 bg-card/80 backdrop-blur-md"
+            >
+              {([
+                { id: "chat", label: "Chat", icon: MessageSquare },
+                { id: "code", label: "Code", icon: Code },
+                { id: "preview", label: "Preview", icon: Eye },
+              ] as const).map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  aria-current={mobileTab === id}
+                  onClick={() => setMobileTab(id)}
+                  className={cn(
+                    "flex flex-col items-center justify-center gap-1 py-2.5 min-h-12 text-[11px] font-medium transition-colors",
+                    mobileTab === id ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <Icon className="w-4 h-4" />
+                  {label}
+                </button>
+              ))}
+            </nav>
+          </div>
+        ) : (
+          <ResizablePanelGroup direction="horizontal" className="h-full">
+            {/* Chat Panel */}
+            <ResizablePanel defaultSize={35} minSize={25} maxSize={50}>
+              <div className="h-full border-r border-border/50 bg-panel">
+                <ChatPanel
+                  messages={messages}
+                  onSendMessage={handleSendMessage}
+                  isStreaming={isStreaming}
+                  isLoading={isLoadingHistory}
+                  readOnly={project?.role === 'VIEWER'}
+                />
+              </div>
+            </ResizablePanel>
+
+            <ResizableHandle className="w-px bg-border/50 hover:bg-primary/50 transition-colors" />
+
+            {/* Code/Preview Panel */}
+            <ResizablePanel defaultSize={65} minSize={50} maxSize={75}>
+              <div className="h-full">
+                <div className="h-full relative">
+                  <div className={cn("h-full absolute inset-0", viewMode !== "code" && "hidden")}>
+                    <CodePanel key={projectId} projectId={projectId} updatedFiles={updatedFiles} />
+                  </div>
+                  <div className={cn("h-full absolute inset-0", viewMode !== "preview" && "hidden")}>
+                    <PreviewPanel
+                      key={projectId}
+                      projectId={projectId}
+                      runtimeError={runtimeError}
+                      onDismiss={() => setRuntimeError(null)}
+                      onFix={handleFixError}
+                    />
+                  </div>
+                </div>
+              </div>
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        )}
+      </main>
+
 
       {/* Rename Dialog */}
       <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>

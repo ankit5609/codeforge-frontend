@@ -17,16 +17,16 @@ const getFileIcon = (path: string) => {
   switch (ext) {
     case 'tsx':
     case 'ts':
-      return 'text-blue-400';
+      return 'bg-primary';
     case 'jsx':
     case 'js':
-      return 'text-yellow-400';
+      return 'bg-amber-400';
     case 'css':
-      return 'text-pink-400';
+      return 'bg-secondary';
     case 'json':
-      return 'text-green-400';
+      return 'bg-accent';
     default:
-      return 'text-muted-foreground';
+      return 'bg-muted-foreground/50';
   }
 };
 
@@ -34,7 +34,7 @@ export function FileTabs({ openTabs, activeTab, onSelectTab, onCloseTab }: FileT
   if (openTabs.length === 0) return null;
 
   return (
-    <div className="flex items-center border-b border-border/50 bg-panel overflow-x-auto">
+    <div className="flex items-center border-b border-border/60 bg-panel overflow-x-auto">
       {openTabs.map((path) => (
         <div
           key={path}

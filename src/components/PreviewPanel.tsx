@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Play, Loader2, ExternalLink, RefreshCw, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { StateView } from "@/components/StateView";
 import { api, PREVIEW_URL_KEY } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
@@ -44,17 +45,17 @@ export function PreviewPanel({ projectId, runtimeError, onDismiss, onFix }: Prev
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       setWaitAttempt(attempt);
       try {
-        // With CORS enabled on the wildcard proxy, we can directly fetch the URL
-        // and check the actual status code to ensure Vite is up (status 200) and not 502/404.
-        const res = await fetch(url, { method: "GET", cache: "no-store" });
-        if (res.ok) {
+        // Use no-cors so browser doesn't block cross-origin; we just need a response (not an error)
+        const res = await fetch(url, { method: "GET", mode: "no-cors", cache: "no-store" });
+        // no-cors gives "opaque" response with status 0 — any non-network-error means server is up
+        if (res.type === "opaque" || res.ok) {
           setIsWaitingForServer(false);
           setIframeReady(true);
           setIframeKey((prev) => prev + 1);
           return;
         }
       } catch {
-        // Network or CORS error = server still starting, keep polling
+        // Network error = server still starting, keep polling
       }
       await new Promise((r) => setTimeout(r, 3000));
     }
@@ -101,11 +102,12 @@ export function PreviewPanel({ projectId, runtimeError, onDismiss, onFix }: Prev
   return (
     <div className="flex flex-col h-full bg-background">
       {/* URL Bar */}
-      <div className="h-12 shrink-0 flex items-center gap-2 px-3 border-b border-border/50 bg-panel">
+      <div className="h-12 shrink-0 flex items-center gap-2 px-3 border-b border-border/60 bg-panel">
         <div className="flex items-center gap-1">
           <Button
             variant="ghost"
             size="icon"
+            aria-label="Refresh preview"
             onClick={handleRefresh}
             disabled={!previewUrl || isWaitingForServer}
             className="h-7 w-7 text-muted-foreground hover:text-foreground"
@@ -114,10 +116,10 @@ export function PreviewPanel({ projectId, runtimeError, onDismiss, onFix }: Prev
           </Button>
         </div>
 
-        <div className="flex-1 flex items-center h-8 px-3 rounded-md bg-muted/50 text-sm text-muted-foreground">
-          <Globe className="w-3.5 h-3.5 mr-2 shrink-0" />
+        <div className="flex-1 flex items-center h-8 px-3 rounded-lg bg-muted/40 text-xs text-muted-foreground border border-border/50">
+          <Globe className="w-3.5 h-3.5 mr-2 shrink-0 text-primary/70" />
           <span className="truncate">
-            {previewUrl || "Click 'Run Preview' to deploy"}
+            {previewUrl || "No preview running yet"}
           </span>
         </div>
 
@@ -126,6 +128,7 @@ export function PreviewPanel({ projectId, runtimeError, onDismiss, onFix }: Prev
             <Button
               variant="ghost"
               size="icon"
+              aria-label="Open preview in new tab"
               onClick={() => window.open(previewUrl, "_blank")}
               className="h-7 w-7 text-muted-foreground hover:text-foreground"
             >
@@ -154,7 +157,7 @@ export function PreviewPanel({ projectId, runtimeError, onDismiss, onFix }: Prev
       </div>
 
       {/* Preview Area */}
-      <div className="flex-1 bg-[#1a1a1a]">
+      <div className="flex-1 bg-muted/20">
         {isWaitingForServer ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-8 gap-4">
             <Loader2 className="w-10 h-10 text-primary animate-spin" />
@@ -192,14 +195,16 @@ export function PreviewPanel({ projectId, runtimeError, onDismiss, onFix }: Prev
             sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
           />
         ) : (
-          <div className="flex flex-col items-center justify-center h-full text-center p-8">
-            <div className="w-16 h-16 rounded-xl bg-muted/20 flex items-center justify-center mb-4">
-              <Globe className="w-8 h-8 text-muted-foreground/50" />
-            </div>
-            <p className="text-sm text-muted-foreground">
-              No preview available yet
-            </p>
-          </div>
+          <StateView
+            icon={Globe}
+            title="No preview running yet"
+            description="Run a preview to launch your app in a live sandbox."
+            action={
+              !isDeploying && !isWaitingForServer
+                ? { label: "Run Preview", onClick: handleDeploy }
+                : undefined
+            }
+          />
         )}
       </div>
 
