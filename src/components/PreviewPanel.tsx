@@ -25,19 +25,6 @@ export function PreviewPanel({ projectId, runtimeError, onDismiss, onFix }: Prev
   const [iframeKey, setIframeKey] = useState(0);
   const { toast } = useToast();
 
-  // Sync state when projectId changes
-  useEffect(() => {
-    const savedUrl = localStorage.getItem(getPreviewUrlKey(projectId));
-    if (savedUrl && savedUrl.includes(`project-${projectId}`)) {
-      setPreviewUrl(savedUrl);
-      waitForPreviewReady(savedUrl);
-    } else {
-      setPreviewUrl(null);
-      setIsWaitingForServer(false);
-      setIframeReady(false);
-    }
-  }, [projectId]);
-
   // Poll the preview URL until it responds with a non-502/non-404 status
   const waitForPreviewReady = async (url: string) => {
     setIsWaitingForServer(true);
@@ -71,6 +58,19 @@ export function PreviewPanel({ projectId, runtimeError, onDismiss, onFix }: Prev
       variant: "destructive",
     });
   };
+
+  // Sync state when projectId changes
+  useEffect(() => {
+    const savedUrl = localStorage.getItem(getPreviewUrlKey(projectId));
+    if (savedUrl && savedUrl.includes(`project-${projectId}`)) {
+      setPreviewUrl(savedUrl);
+      waitForPreviewReady(savedUrl);
+    } else {
+      setPreviewUrl(null);
+      setIsWaitingForServer(false);
+      setIframeReady(false);
+    }
+  }, [projectId]);
 
   const handleDeploy = async () => {
     setIsDeploying(true);
