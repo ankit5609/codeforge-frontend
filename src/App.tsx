@@ -32,7 +32,9 @@ const App = () => (
           <Route path="/projects" element={<ProjectsDashboard />} />
           <Route path="/projects/:projectId" element={<ProjectView />} />
           <Route path="/success" element={<Success />} />
+          <Route path="/success.html" element={<Success />} />
           <Route path="/cancel" element={<Cancel />} />
+          <Route path="/cancel.html" element={<Cancel />} />
           <Route path="/settings" element={<Settings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

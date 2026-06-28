@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { ChevronRight, ChevronDown, File, Folder, FolderOpen, FileCode, FileJson, FileText, Image } from "lucide-react";
+import { ChevronRight, ChevronDown, Folder, FolderOpen } from "lucide-react";
 import { FileNode } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { StateView } from "@/components/StateView";
+import { FileTypeIcon } from "@/components/FileTypeIcon";
 
 interface FileTreeProps {
   files: FileNode[];
@@ -10,55 +11,6 @@ interface FileTreeProps {
   onSelectFile: (path: string) => void;
   isLoading?: boolean;
 }
-
-const getFileIcon = (name: string) => {
-  const ext = name.split(".").pop()?.toLowerCase();
-  
-  switch (ext) {
-    case "ts":
-    case "tsx":
-    case "js":
-    case "jsx":
-      return FileCode;
-    case "json":
-      return FileJson;
-    case "md":
-    case "txt":
-      return FileText;
-    case "png":
-    case "jpg":
-    case "jpeg":
-    case "svg":
-    case "gif":
-      return Image;
-    default:
-      return File;
-  }
-};
-
-const getFileColor = (name: string) => {
-  const ext = name.split(".").pop()?.toLowerCase();
-  
-  switch (ext) {
-    case "ts":
-    case "tsx":
-      return "text-primary";
-    case "js":
-    case "jsx":
-      return "text-secondary";
-    case "json":
-      return "text-amber-400";
-    case "css":
-    case "scss":
-      return "text-secondary";
-    case "html":
-      return "text-amber-500";
-    case "md":
-      return "text-muted-foreground";
-    default:
-      return "text-muted-foreground";
-  }
-};
 
 interface FileTreeItemProps {
   node: FileNode;
@@ -72,8 +24,7 @@ function FileTreeItem({ node, depth, selectedPath, onSelectFile }: FileTreeItemP
   
   const isDirectory = node.type === "directory";
   const isSelected = selectedPath === node.path;
-  const FileIcon = isDirectory ? (isExpanded ? FolderOpen : Folder) : getFileIcon(node.name);
-  const fileColor = isDirectory ? "text-secondary/80" : getFileColor(node.name);
+
 
   const handleClick = () => {
     if (isDirectory) {
@@ -112,7 +63,15 @@ function FileTreeItem({ node, depth, selectedPath, onSelectFile }: FileTreeItemP
         ) : (
           <span className="w-4" />
         )}
-        <FileIcon className={cn("w-4 h-4 shrink-0", fileColor)} />
+        {isDirectory ? (
+          isExpanded ? (
+            <FolderOpen className="w-4 h-4 shrink-0 text-secondary/80" />
+          ) : (
+            <Folder className="w-4 h-4 shrink-0 text-secondary/80" />
+          )
+        ) : (
+          <FileTypeIcon name={node.name} />
+        )}
         <span className="truncate text-sm">{node.name}</span>
       </div>
       

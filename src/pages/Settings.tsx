@@ -1,25 +1,18 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, CreditCard, LogOut, Loader2, User as UserIcon, ShieldCheck } from "lucide-react";
+import { ArrowLeft, CreditCard, LogOut, Loader2, User as UserIcon, ShieldCheck, Sparkles, Check, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { UsageMeter } from "@/components/UsageMeter";
 import { StateView } from "@/components/StateView";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { api, getUserInfo, removeAuthToken, removeUserInfo } from "@/lib/api";
 import { deriveTokenUsage } from "@/lib/usage";
-import { getPlanById } from "@/lib/plans";
+import { PRICING_PLANS, describeSubscription } from "@/lib/plans";
+import { cn } from "@/lib/utils";
 import type { SubscriptionResponse } from "@/lib/types";
-
-const STATUS_META: Record<string, { label: string; dot: string }> = {
-  ACTIVE: { label: "Active", dot: "bg-primary" },
-  TRIALING: { label: "Trialing", dot: "bg-primary" },
-  PAST_DUE: { label: "Past due", dot: "bg-amber-500" },
-  INCOMPLETE: { label: "Incomplete", dot: "bg-amber-500" },
-  DEMO_LOCKED: { label: "Demo locked", dot: "bg-amber-500" },
-  NONE: { label: "No plan", dot: "bg-muted-foreground" },
-};
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -29,6 +22,8 @@ export default function Settings() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [isPlanDialogOpen, setIsPlanDialogOpen] = useState(false);
+  const [checkoutPlanId, setCheckoutPlanId] = useState<number | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -48,25 +43,50 @@ export default function Settings() {
     navigate("/login");
   };
 
-  const manageBilling = async () => {
+  const display = describeSubscription(sub);
+
+  // Consistent billing behaviour:
+  //  - active/paid plan  -> open the Stripe billing portal
+  //  - everyone else     -> show the plan selection dialog (no surprise jumps)
+  const handleBilling = async () => {
+    if (!display.isActive) {
+      setIsPlanDialogOpen(true);
+      return;
+    }
     setPortalLoading(true);
     try {
       const { portalUrl } = await api.createPortalSession();
+      if (!portalUrl) throw new Error("No billing portal URL was returned.");
       window.location.href = portalUrl;
     } catch {
       toast({
         variant: "destructive",
         title: "Couldn't open billing portal",
-        description: "Please try again in a moment, or manage your plan from the dashboard.",
+        description: "We couldn't reach the billing portal. Showing your plan options instead.",
       });
       setPortalLoading(false);
+      setIsPlanDialogOpen(true);
+    }
+  };
+
+  const handleStartCheckout = async (planId: number) => {
+    setCheckoutPlanId(planId);
+    try {
+      const { checkoutUrl } = await api.createCheckoutSession(planId);
+      window.location.href = checkoutUrl;
+    } catch {
+      toast({
+        variant: "destructive",
+        title: "Couldn't start checkout",
+        description: "Please try again in a moment.",
+      });
+      setCheckoutPlanId(null);
     }
   };
 
   const initials = (user?.name || user?.username || "U").slice(0, 2).toUpperCase();
-  const status = sub ? STATUS_META[sub.status] ?? STATUS_META.NONE : STATUS_META.NONE;
-  const plan = getPlanById(sub?.plan?.id ?? null);
   const tokenUsage = deriveTokenUsage(sub);
+  const billingLabel = display.isActive ? "Manage billing" : "View plans";
 
   return (
     <div className="min-h-dvh bg-background">
@@ -123,18 +143,21 @@ export default function Settings() {
             <div className="space-y-5 rounded-lg border border-border/60 bg-card/60 p-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-lg font-medium text-foreground">
-                    {plan?.name || sub?.plan?.name || "Free / no active plan"}
-                  </p>
+                  <p className="text-lg font-medium text-foreground">{display.name}</p>
                   <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <span className={`h-2 w-2 rounded-full ${status.dot}`} />
-                    {status.label}
-                    {sub?.currentPeriodEnd && (
+                    <span
+                      className={cn(
+                        "h-2 w-2 rounded-full",
+                        display.tone === "primary" ? "bg-primary" : display.tone === "amber" ? "bg-amber-500" : "bg-muted-foreground",
+                      )}
+                    />
+                    {display.statusLabel}
+                    {display.isActive && sub?.currentPeriodEnd && (
                       <span>· renews {new Date(sub.currentPeriodEnd).toLocaleDateString()}</span>
                     )}
                   </p>
                 </div>
-                {plan && <span className="text-sm text-muted-foreground">{plan.price}/{plan.period}</span>}
+                {display.price && <span className="text-sm text-muted-foreground">{display.price}</span>}
               </div>
 
               {sub?.message && (
@@ -151,13 +174,15 @@ export default function Settings() {
               />
 
               <div className="flex flex-wrap gap-3">
-                <Button onClick={manageBilling} disabled={portalLoading}>
+                <Button onClick={handleBilling} disabled={portalLoading}>
                   {portalLoading ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
+                  ) : display.isActive ? (
                     <CreditCard className="mr-2 h-4 w-4" />
+                  ) : (
+                    <Sparkles className="mr-2 h-4 w-4" />
                   )}
-                  Manage billing
+                  {billingLabel}
                 </Button>
                 <Button variant="outline" onClick={() => navigate("/projects")}>
                   Back to projects
@@ -175,6 +200,61 @@ export default function Settings() {
           </Button>
         </section>
       </main>
+
+      {/* Plan selection dialog (shared with the dashboard upgrade flow) */}
+      <Dialog open={isPlanDialogOpen} onOpenChange={setIsPlanDialogOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-display text-2xl">Choose your plan</DialogTitle>
+            <DialogDescription>Upgrade to unlock more projects, AI usage and faster builds.</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2">
+            {PRICING_PLANS.map((tier) => {
+              const isLoading = checkoutPlanId === tier.id;
+              return (
+                <div
+                  key={tier.id}
+                  className={cn(
+                    "relative rounded-2xl border bg-card/80 p-6 flex flex-col",
+                    tier.isPopular ? "border-primary/50 ring-1 ring-primary/30 shadow-[var(--shadow-glow)]" : "border-border/70",
+                  )}
+                >
+                  {tier.isPopular && (
+                    <span className="absolute -top-2.5 left-6 inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary-foreground">
+                      <Zap className="w-3 h-3" /> Popular
+                    </span>
+                  )}
+                  <h3 className="font-display text-lg font-semibold text-foreground">{tier.name}</h3>
+                  <div className="mt-2 flex items-baseline gap-1">
+                    <span className="font-display text-3xl font-semibold text-foreground">{tier.price}</span>
+                    <span className="text-sm text-muted-foreground">/{tier.period}</span>
+                  </div>
+                  <p className="mt-2 text-sm text-muted-foreground">{tier.description}</p>
+                  <ul className="mt-5 space-y-2.5 flex-1">
+                    {tier.features.map((feature) => (
+                      <li key={feature} className="flex items-start gap-2 text-sm text-foreground/90">
+                        <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                  <Button
+                    onClick={() => handleStartCheckout(tier.id)}
+                    disabled={checkoutPlanId !== null}
+                    className={cn(
+                      "mt-6 w-full rounded-full h-11 text-sm font-medium",
+                      tier.isPopular ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-foreground/90 text-background hover:bg-foreground",
+                    )}
+                  >
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Choose {tier.name}
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

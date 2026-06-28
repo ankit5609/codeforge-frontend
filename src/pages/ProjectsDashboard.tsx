@@ -11,10 +11,11 @@ import { ProjectSummaryResponse, SubscriptionResponse } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { generateGradient, cn } from "@/lib/utils";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { PRICING_PLANS } from "@/lib/plans";
+import { PRICING_PLANS, describeSubscription } from "@/lib/plans";
 import { UsageMeter } from "@/components/UsageMeter";
 import { deriveTokenUsage, deriveProjectUsage } from "@/lib/usage";
 import { PROJECT_TEMPLATES } from "@/lib/templates";
+import { Logo } from "@/components/Logo";
 
 // Plan tiers come from the shared hardcoded pricing source (no public
 // "list plans" endpoint). planId maps to the backend Stripe configuration.
@@ -90,6 +91,17 @@ export function ProjectsDashboard() {
     };
 
     const handleManageBilling = async () => {
+        // Only a genuinely active/paid subscription can open the Stripe portal.
+        // For demo / free / incomplete states, always show the plan dialog so the
+        // behaviour is consistent on every click (no surprise jump to checkout).
+        const active =
+            subscription?.status === "ACTIVE" ||
+            subscription?.status === "TRIALING" ||
+            subscription?.status === "PAST_DUE";
+        if (!active) {
+            setIsPlanDialogOpen(true);
+            return;
+        }
         setIsPortalLoading(true);
         try {
             const { portalUrl } = await api.createPortalSession();
@@ -109,6 +121,7 @@ export function ProjectsDashboard() {
             setIsPortalLoading(false);
         }
     };
+
 
 
     const fetchProjects = async () => {
@@ -228,6 +241,7 @@ export function ProjectsDashboard() {
     const isSubscribed =
         status === "ACTIVE" || status === "TRIALING" || status === "PAST_DUE";
     const showUpgrade = status === "NONE" || status === "INCOMPLETE";
+    const planDisplay = describeSubscription(subscription);
 
 
     return (
@@ -242,20 +256,24 @@ export function ProjectsDashboard() {
             {/* Header */}
             <header className="relative z-20 border-b border-border/60 bg-background/70 backdrop-blur-md">
                 <div className="max-w-6xl mx-auto flex h-16 items-center justify-between px-6 lg:px-8">
-                    <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl bg-primary/12 border border-primary/20 flex items-center justify-center">
-                            <img src="/favicon.png" alt="CodeForge" className="w-4.5 h-4.5 object-contain" />
-                        </div>
-                        <span className="font-display text-lg font-semibold tracking-tight text-foreground">CodeForge</span>
-                    </div>
+                    <button
+                        type="button"
+                        onClick={() => { navigate("/projects"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                        className="flex items-center rounded-lg transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                        aria-label="CodeForge — back to top"
+                    >
+                        <Logo />
+                    </button>
+
                     <div className="flex items-center gap-2">
-                        {subscription && (showUpgrade ? (
+                        {subscription && ((showUpgrade || isDemoLocked) ? (
                             <Button
                                 onClick={() => setIsPlanDialogOpen(true)}
                                 className="h-9 gap-2 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 px-4 text-sm font-medium shadow-[var(--shadow-glow)]"
                             >
-                                <Sparkles className="w-4 h-4" /> Upgrade
+                                <Sparkles className="w-4 h-4" /> {isDemoLocked ? "View plans" : "Upgrade"}
                             </Button>
+
                         ) : isSubscribed ? (
                             <Button
                                 variant="outline"
@@ -283,20 +301,46 @@ export function ProjectsDashboard() {
                                 <span className="text-sm text-muted-foreground hidden sm:inline">{user?.name || "Account"}</span>
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-56">
-                            <div className="flex flex-col space-y-1 p-2">
-                                <p className="text-sm font-medium leading-none text-foreground">{user?.name || "User"}</p>
-                                <p className="text-xs leading-none text-muted-foreground mt-1">{user?.username || ""}</p>
+                        <DropdownMenuContent align="end" className="w-72 p-0 overflow-hidden">
+                            <div className="flex items-center gap-3 p-4 bg-muted/30 border-b border-border/60">
+                                <Avatar className="h-11 w-11">
+                                    <AvatarFallback className="bg-primary/15 text-primary text-base font-semibold">
+                                        {(user?.name ? user.name.charAt(0).toUpperCase() : "U")}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-sm font-semibold leading-tight text-foreground truncate">{user?.name || "User"}</p>
+                                    <p className="text-xs leading-tight text-muted-foreground truncate mt-0.5">{user?.username || ""}</p>
+                                </div>
                             </div>
-                            <DropdownMenuItem onClick={() => navigate("/settings")} className="cursor-pointer">
-                                <SettingsIcon className="w-4 h-4 mr-2" />
-                                Settings
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive cursor-pointer">
-                                <LogOut className="w-4 h-4 mr-2" />
-                                Sign out
-                            </DropdownMenuItem>
+                            <div className="flex items-center justify-between px-4 py-3 border-b border-border/60">
+                                <span className="text-xs text-muted-foreground">Plan</span>
+                                <span className={cn(
+                                    "inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border",
+                                    planDisplay.tone === "primary" ? "bg-primary/10 text-primary border-primary/20" :
+                                        planDisplay.tone === "amber" ? "bg-amber-500/10 text-amber-500 border-amber-500/20" :
+                                            "bg-muted text-muted-foreground border-border"
+                                )}>
+                                    <span className={cn(
+                                        "h-1.5 w-1.5 rounded-full",
+                                        planDisplay.tone === "primary" ? "bg-primary" :
+                                            planDisplay.tone === "amber" ? "bg-amber-500" : "bg-muted-foreground"
+                                    )} />
+                                    {planDisplay.name}
+                                </span>
+                            </div>
+                            <div className="p-1">
+                                <DropdownMenuItem onClick={() => navigate("/settings")} className="cursor-pointer rounded-md py-2">
+                                    <SettingsIcon className="w-4 h-4 mr-2" />
+                                    Settings
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive cursor-pointer rounded-md py-2">
+                                    <LogOut className="w-4 h-4 mr-2" />
+                                    Sign out
+                                </DropdownMenuItem>
+                            </div>
                         </DropdownMenuContent>
+
                     </DropdownMenu>
                     </div>
                 </div>

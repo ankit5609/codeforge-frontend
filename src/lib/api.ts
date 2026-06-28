@@ -13,6 +13,40 @@ export const removeAuthToken = () => localStorage.removeItem("auth_token");
 
 export const isAuthenticated = () => !!getAuthToken();
 
+/** Error enriched with the HTTP status so callers can show friendly messages. */
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
+/**
+ * Turn a failed Response into a clean ApiError. Backend errors often arrive as
+ * JSON like {"status":"UNAUTHORIZED","message":"...","timeStamp":"..."} — we
+ * surface just the human-readable message, never the raw JSON blob.
+ */
+async function buildApiError(response: Response, fallback: string): Promise<ApiError> {
+  let message = "";
+  try {
+    const raw = await response.text();
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        message = parsed?.message || parsed?.error || parsed?.detail || "";
+      } catch {
+        // Not JSON — use the raw text only if it isn't itself a JSON-looking blob.
+        message = raw.trim().startsWith("{") ? "" : raw;
+      }
+    }
+  } catch {
+    /* ignore body read errors */
+  }
+  return new ApiError(message || fallback, response.status);
+}
+
 const getAuthHeaders = (): HeadersInit => {
   const token = getAuthToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
@@ -106,8 +140,7 @@ export const api = {
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(error || "Login failed");
+      throw await buildApiError(response, "Login failed");
     }
 
     return response.json();
@@ -121,8 +154,7 @@ export const api = {
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(error || "Signup failed");
+      throw await buildApiError(response, "Signup failed");
     }
 
     return response.json();

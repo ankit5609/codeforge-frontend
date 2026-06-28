@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Code, Eye, Loader2, LogOut, RotateCcw, Maximize2, RefreshCw, MoreVertical, Trash, Download, Edit, MessageSquare, Search, Keyboard } from "lucide-react";
+import { Code, Eye, Loader2, LogOut, RotateCcw, Maximize2, RefreshCw, MoreVertical, Trash, Download, Edit, MessageSquare, Search, Keyboard, Settings as SettingsIcon } from "lucide-react";
 import { DeployStatus, DeployState } from "@/components/DeployStatus";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { ChatPanel, ChatMessage } from "@/components/ChatPanel";
@@ -432,14 +432,28 @@ Please analyze this error and fix the code to resolve it.`;
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => navigate("/settings")} className="cursor-pointer">
-                <Edit className="w-4 h-4 mr-2" /> Settings
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive cursor-pointer">
-                <LogOut className="w-4 h-4 mr-2" /> Sign out
-              </DropdownMenuItem>
+            <DropdownMenuContent align="end" className="w-64 p-0 overflow-hidden">
+              <div className="flex items-center gap-3 p-4 bg-muted/30 border-b border-border/60">
+                <Avatar className="h-10 w-10">
+                  <AvatarFallback className="text-sm bg-primary/15 text-primary font-semibold">
+                    {(getUserInfo()?.name ? getUserInfo()!.name.charAt(0).toUpperCase() : "U")}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold leading-tight text-foreground truncate">{getUserInfo()?.name || "User"}</p>
+                  <p className="text-xs leading-tight text-muted-foreground truncate mt-0.5">{getUserInfo()?.username || ""}</p>
+                </div>
+              </div>
+              <div className="p-1">
+                <DropdownMenuItem onClick={() => navigate("/settings")} className="cursor-pointer rounded-md py-2">
+                  <SettingsIcon className="w-4 h-4 mr-2" /> Settings
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive cursor-pointer rounded-md py-2">
+                  <LogOut className="w-4 h-4 mr-2" /> Sign out
+                </DropdownMenuItem>
+              </div>
             </DropdownMenuContent>
+
           </DropdownMenu>
         </div>
       </header>

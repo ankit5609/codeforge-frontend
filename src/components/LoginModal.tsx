@@ -1,10 +1,45 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Loader2, ArrowRight, Check, GitBranch, Terminal } from "lucide-react";
-import { api, setAuthToken, setUserInfo } from "@/lib/api";
+import { api, setAuthToken, setUserInfo, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Logo } from "@/components/Logo";
 import { useToast } from "@/hooks/use-toast";
+
+/** Map any login error into a friendly title + description for the toast. */
+function describeLoginError(error: unknown): { title: string; description: string } {
+  const status = error instanceof ApiError ? error.status : undefined;
+  const msg = error instanceof Error ? error.message : "";
+  const looksLikeBadCreds =
+    status === 401 ||
+    status === 403 ||
+    /bad credentials|unauthorized|invalid|incorrect|not found/i.test(msg);
+
+  if (looksLikeBadCreds) {
+    return {
+      title: "Incorrect email or password",
+      description: "Double-check your details and try again — or use the one-click demo below.",
+    };
+  }
+  if (status === 429) {
+    return {
+      title: "Too many attempts",
+      description: "Please wait a moment before trying to sign in again.",
+    };
+  }
+  if (status === undefined) {
+    return {
+      title: "Can't reach the server",
+      description: "Check your connection and try again in a moment.",
+    };
+  }
+  return {
+    title: "Couldn't sign you in",
+    description: msg && msg.length < 120 ? msg : "Something went wrong on our end. Please try again.",
+  };
+}
+
 
 export function LoginModal() {
   const [email, setEmail] = useState("");
@@ -29,7 +64,10 @@ export function LoginModal() {
     } catch (error) {
       toast({
         title: "Demo unavailable",
-        description: error instanceof Error ? error.message : "Could not start the demo session.",
+        description:
+          error instanceof Error && error.message && error.message.length < 120
+            ? error.message
+            : "We couldn't start the demo session right now. Please try again in a moment.",
         variant: "destructive",
       });
       setIsLoading(false);
@@ -62,18 +100,16 @@ export function LoginModal() {
       });
       navigate("/projects");
     } catch (error) {
-      toast({
-        title: "Login failed",
-        description: error instanceof Error ? error.message : "Invalid credentials",
-        variant: "destructive",
-      });
+      const { title, description } = describeLoginError(error);
+      toast({ title, description, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#0f1d17] relative select-none animate-fade-in flex items-center justify-center p-4 sm:p-6 lg:p-10 overflow-hidden">
+    <div className="min-h-screen w-full bg-[#0f1d17] relative select-none animate-fade-in flex items-center justify-center p-4 sm:p-6 lg:p-8 overflow-x-hidden overflow-y-auto">
+
       {/* Background: faint dev grid + scanlines + single cyan orb */}
       <div className="absolute inset-0 dev-grid pointer-events-none" />
       <div
@@ -94,26 +130,27 @@ export function LoginModal() {
         {/* ============ LEFT: Authentication terminal ============ */}
         <div className="flex flex-col">
           {/* Brand lockup */}
-          <div className="flex items-center gap-2.5 mb-6">
-            <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary-500/25 flex items-center justify-center">
-              <img src="/favicon.png" alt="CodeForge" className="w-5 h-5 object-contain" />
-            </div>
-            <div className="font-mono text-sm tracking-tight text-slate-200 font-bold">
-              code<span className="text-primary">forge</span>
-            </div>
-          </div>
+          <button
+            type="button"
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            className="flex items-center gap-2.5 mb-4 w-fit rounded-lg transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            aria-label="CodeForge — back to top"
+          >
+            <Logo variant="mono" markClassName="w-8 h-8" />
+          </button>
 
           {/* Oversized editorial headline */}
-          <h1 className="font-display text-4xl sm:text-5xl font-extrabold leading-[1.02] tracking-tight text-white mb-3">
-            Build.<br />
-            Test.<br />
+          <h1 className="font-display text-2xl sm:text-3xl font-extrabold leading-[1.08] tracking-tight text-white mb-2">
+            Build. Test.{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-secondary">
               Ship_
             </span>
           </h1>
-          <p className="text-slate-300 text-sm leading-relaxed max-w-sm mb-8">
+          <p className="text-slate-300 text-sm leading-relaxed max-w-sm mb-5">
             Plan, generate, test and deploy software from one intelligent engineering workspace.
           </p>
+
+
 
           {/* The IDE-window auth console */}
           <div className="premium-card rounded-xl overflow-hidden bg-[#0d1a14]/90 border border-white/[0.06]">
@@ -135,13 +172,14 @@ export function LoginModal() {
             </div>
 
             {/* Console body */}
-            <div className="p-5 sm:p-6">
-              <p className="font-mono text-[11px] text-slate-300 mb-5">
+            <div className="p-5">
+              <p className="font-mono text-[11px] text-slate-300 mb-4">
                 <span className="text-primary">$</span> authenticate --workspace
                 
               </p>
 
-              <form onSubmit={handleSubmit} className="space-y-5">
+              <form onSubmit={handleSubmit} className="space-y-4">
+
                 <div className="space-y-1">
                   <label htmlFor="email" className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate-300">
                     email

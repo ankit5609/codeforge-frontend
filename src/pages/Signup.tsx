@@ -4,6 +4,7 @@ import { Loader2, ArrowRight, Check, GitBranch, Terminal } from "lucide-react";
 import { api, setAuthToken, setUserInfo } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Logo } from "@/components/Logo";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Signup() {
@@ -70,14 +71,15 @@ export default function Signup() {
         {/* ============ LEFT: Create-workspace console ============ */}
         <div className="flex flex-col">
           {/* Brand lockup */}
-          <div className="flex items-center gap-2.5 mb-6">
-            <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary-500/25 flex items-center justify-center">
-              <img src="/favicon.png" alt="CodeForge" className="w-5 h-5 object-contain" />
-            </div>
-            <div className="font-mono text-sm tracking-tight text-slate-200 font-bold">
-              code<span className="text-primary">forge</span>
-            </div>
-          </div>
+          <button
+            type="button"
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            className="flex items-center gap-2.5 mb-6 w-fit rounded-lg transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            aria-label="CodeForge — back to top"
+          >
+            <Logo variant="mono" markClassName="w-8 h-8" />
+          </button>
+
 
           {/* Oversized editorial headline */}
           <h1 className="font-display text-4xl sm:text-5xl font-extrabold leading-[1.02] tracking-tight text-white mb-3">
