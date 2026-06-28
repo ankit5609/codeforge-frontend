@@ -34,10 +34,8 @@ export function PreviewPanel({ projectId, runtimeError, onDismiss, onFix }: Prev
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       setWaitAttempt(attempt);
       try {
-        // Use no-cors so browser doesn't block cross-origin; we just need a response (not an error)
-        const res = await fetch(url, { method: "GET", mode: "no-cors", cache: "no-store" });
-        // no-cors gives "opaque" response with status 0 — any non-network-error means server is up
-        if (res.type === "opaque" || res.ok) {
+        const res = await fetch(url, { method: "GET", cache: "no-store" });
+        if (res.ok) {
           setIsWaitingForServer(false);
           setIframeReady(true);
           setIframeKey((prev) => prev + 1);
@@ -180,15 +178,6 @@ export function PreviewPanel({ projectId, runtimeError, onDismiss, onFix }: Prev
             </div>
           </div>
         ) : previewUrl && iframeReady ? (
-          <iframe
-            key={`iframe-${iframeKey}`}
-            src={previewUrl}
-            className="w-full h-full border-0"
-            title="Preview"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-          />
-        ) : previewUrl && !iframeReady ? (
-          // Has a saved URL from a previous session — show iframe directly
           <iframe
             key={`iframe-${iframeKey}`}
             src={previewUrl}
