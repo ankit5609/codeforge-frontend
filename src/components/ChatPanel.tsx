@@ -81,6 +81,7 @@ export function ChatPanel({ messages, onSendMessage, isStreaming, isLoading, rea
   }, [isStreaming]);
 
   const tokenUsage = deriveTokenUsage(subscription);
+  const isLimitReached = !tokenUsage.unlimited && tokenUsage.limit > 0 && tokenUsage.used >= tokenUsage.limit;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -92,7 +93,7 @@ export function ChatPanel({ messages, onSendMessage, isStreaming, isLoading, rea
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isStreaming) return;
+    if (!input.trim() || isStreaming || isLimitReached) return;
 
     onSendMessage(input.trim());
     setInput("");
@@ -115,6 +116,8 @@ export function ChatPanel({ messages, onSendMessage, isStreaming, isLoading, rea
     textarea.style.height = "auto";
     textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
   };
+
+  const hoursUntilReset = 24 - new Date().getUTCHours();
 
   return (
     <div className="flex flex-col h-full bg-background">
@@ -176,43 +179,64 @@ export function ChatPanel({ messages, onSendMessage, isStreaming, isLoading, rea
 
       {/* Input Area */}
       <div className="shrink-0 p-3 border-t border-border/60 bg-card">
-        <form onSubmit={handleSubmit} className="relative">
-          <Textarea
-            ref={textareaRef}
-            value={input}
-            onChange={handleTextareaChange}
-            onKeyDown={handleKeyDown}
-            placeholder={readOnly ? "You have view-only access to this project" : "Describe what you want to build..."}
-            className="min-h-[48px] max-h-[200px] pr-12 resize-none bg-muted/30 border-border/30 focus:border-primary/50 rounded-xl text-sm"
-            disabled={isStreaming || readOnly}
-            rows={1}
-          />
-          <Button
-            type="submit"
-            size="icon"
-            aria-label="Send message"
-            disabled={!input.trim() || isStreaming || readOnly}
-            className="absolute right-2 bottom-2 h-8 w-8 rounded-lg"
-          >
-            {isStreaming ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Send className="w-4 h-4" />
-            )}
-          </Button>
-        </form>
-
-        <div className="flex items-center justify-between mt-2 px-1">
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <span>Press Enter to send, Shift+Enter for a new line</span>
+        {isLimitReached && !readOnly ? (
+          <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-center space-y-3">
+            <div className="flex items-center justify-center gap-2 text-amber-500 font-semibold text-sm">
+              <Zap className="h-4.5 w-4.5 fill-amber-500" />
+              <span>Out of messages</span>
+            </div>
+            <p className="text-xs text-amber-200/80 leading-relaxed">
+              Resets in {hoursUntilReset} {hoursUntilReset === 1 ? 'hour' : 'hours'}. Upgrade your plan
+            </p>
+            <Button
+              type="button"
+              onClick={() => window.location.href = "/settings"}
+              className="w-full bg-amber-600 hover:bg-amber-500 text-black font-semibold rounded-lg text-xs py-2 transition-colors active:scale-[0.98]"
+            >
+              Upgrade Plan
+            </Button>
           </div>
-          {isStreaming && (
-            <span className="text-xs text-muted-foreground flex items-center gap-1 font-medium">
-              <Loader2 className="w-3 h-3 animate-spin text-primary" />
-              Thinking...
-            </span>
-          )}
-        </div>
+        ) : (
+          <>
+            <form onSubmit={handleSubmit} className="relative">
+              <Textarea
+                ref={textareaRef}
+                value={input}
+                onChange={handleTextareaChange}
+                onKeyDown={handleKeyDown}
+                placeholder={readOnly ? "You have view-only access to this project" : "Describe what you want to build..."}
+                className="min-h-[48px] max-h-[200px] pr-12 resize-none bg-muted/30 border-border/30 focus:border-primary/50 rounded-xl text-sm"
+                disabled={isStreaming || readOnly}
+                rows={1}
+              />
+              <Button
+                type="submit"
+                size="icon"
+                aria-label="Send message"
+                disabled={!input.trim() || isStreaming || readOnly}
+                className="absolute right-2 bottom-2 h-8 w-8 rounded-lg"
+              >
+                {isStreaming ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
+              </Button>
+            </form>
+
+            <div className="flex items-center justify-between mt-2 px-1">
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <span>Press Enter to send, Shift+Enter for a new line</span>
+              </div>
+              {isStreaming && (
+                <span className="text-xs text-muted-foreground flex items-center gap-1 font-medium">
+                  <Loader2 className="w-3 h-3 animate-spin text-primary" />
+                  Thinking...
+                </span>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
