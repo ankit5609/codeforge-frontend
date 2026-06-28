@@ -64,16 +64,21 @@ export function ChatPanel({ messages, onSendMessage, isStreaming, isLoading, rea
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {
-    let active = true;
-    api
-      .getCurrentSubscription()
-      .then((s) => active && setSubscription(s))
+  const fetchSubscription = () => {
+    api.getCurrentSubscription()
+      .then((s) => setSubscription(s))
       .catch(() => {});
-    return () => {
-      active = false;
-    };
+  };
+
+  useEffect(() => {
+    fetchSubscription();
   }, []);
+
+  useEffect(() => {
+    if (!isStreaming) {
+      fetchSubscription();
+    }
+  }, [isStreaming]);
 
   const tokenUsage = deriveTokenUsage(subscription);
 
