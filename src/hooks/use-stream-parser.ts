@@ -44,6 +44,14 @@ export const useStreamParser = (streamBuffer: string) => {
         metadata
       });
     }
+    
+    // Fallback: if no XML tags are detected but there is content, treat it as a standard message event
+    if (events.length === 0 && streamBuffer.trim().length > 0) {
+      events.push({
+        type: ChatEventType.MESSAGE,
+        content: streamBuffer.trim()
+      });
+    }
 
     return events;
   }, [streamBuffer]);
