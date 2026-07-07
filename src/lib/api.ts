@@ -378,17 +378,17 @@ export const api = {
     let body: BodyInit;
     const headers: Record<string, string> = { ...getAuthHeaders() };
 
-    if (hasImage) {
-      const form = new FormData();
-      form.append("projectId", String(projectId));
-      if (trimmedMessage) form.append("message", trimmedMessage);
-      form.append("image", image as File);
-      body = form;
-      // NOTE: do NOT set Content-Type — browser will add multipart boundary
-    } else {
-      headers["Content-Type"] = "application/json";
-      body = JSON.stringify({ message: trimmedMessage, projectId });
+    const form = new FormData();
+    form.append("projectId", String(projectId));
+    if (trimmedMessage) {
+      form.append("message", trimmedMessage);
     }
+    if (image) {
+      form.append("image", image);
+    }
+    body = form;
+    // NOTE: do NOT set Content-Type header — browser will add the correct multipart boundary automatically
+
 
     fetch(`${BASE_URL}/api/v1/intelligence/chat/stream`, {
       method: "POST",
