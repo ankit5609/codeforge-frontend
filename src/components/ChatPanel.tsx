@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Bot, ThumbsUp, ThumbsDown, Copy, RotateCcw, MoreHorizontal, FileCode, Zap } from "lucide-react";
+import { Send, Loader2, Bot, ThumbsUp, ThumbsDown, Copy, RotateCcw, MoreHorizontal, FileCode, Zap, ImagePlus, X } from "lucide-react";
+import { AttachmentImage } from "@/components/AttachmentImage";
+import assistantLogo from "@/assets/assistant-logo.png";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -48,11 +50,12 @@ export interface ChatMessage {
   createdAt?: string;
   events?: ChatEvent[]; // Structured events from the database
   editedFiles?: string[];
+  imageUrl?: string | null; // Attachment URL for user messages
 }
 
 interface ChatPanelProps {
   messages: ChatMessage[];
-  onSendMessage: (message: string) => void;
+  onSendMessage: (message: string, image?: File | null) => void;
   isStreaming: boolean;
   isLoading?: boolean;
   readOnly?: boolean;
@@ -60,9 +63,12 @@ interface ChatPanelProps {
 
 export function ChatPanel({ messages, onSendMessage, isStreaming, isLoading, readOnly }: ChatPanelProps) {
   const [input, setInput] = useState("");
+  const [image, setImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [subscription, setSubscription] = useState<SubscriptionResponse | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchSubscription = () => {
     api.getCurrentSubscription()
@@ -91,12 +97,33 @@ export function ChatPanel({ messages, onSendMessage, isStreaming, isLoading, rea
     scrollToBottom();
   }, [messages]);
 
+  const clearImage = () => {
+    setImage(null);
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+      setImagePreview(null);
+    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleImagePick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) return;
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImage(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isStreaming || isLimitReached) return;
+    if (isStreaming || isLimitReached) return;
+    // Allow send when either text OR image is present
+    if (!input.trim() && !image) return;
 
-    onSendMessage(input.trim());
+    onSendMessage(input.trim(), image);
     setInput("");
+    clearImage();
 
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -123,9 +150,13 @@ export function ChatPanel({ messages, onSendMessage, isStreaming, isLoading, rea
     <div className="flex flex-col h-full bg-background">
       {/* Panel header */}
       <div className="h-12 shrink-0 flex items-center gap-2 px-4 border-b border-border/60 bg-panel">
-        <div className="w-6 h-6 rounded-lg bg-primary/15 flex items-center justify-center">
-          <Bot className="w-3.5 h-3.5 text-primary" />
-        </div>
+        <img
+          src={assistantLogo}
+          alt="Assistant"
+          width={24}
+          height={24}
+          className="h-6 w-6 object-contain drop-shadow-[0_0_8px_rgba(16,185,129,0.35)]"
+        />
         <span className="font-display font-semibold text-sm text-foreground">Assistant</span>
         <span className="text-xs text-muted-foreground">· your build partner</span>
         {subscription && (
@@ -199,21 +230,62 @@ export function ChatPanel({ messages, onSendMessage, isStreaming, isLoading, rea
         ) : (
           <>
             <form onSubmit={handleSubmit} className="relative">
+              {imagePreview && (
+                <div className="mb-2 inline-flex items-start gap-2 rounded-lg border border-border/50 bg-muted/30 p-2">
+                  <img
+                    src={imagePreview}
+                    alt="Attachment preview"
+                    className="h-16 w-16 rounded-md object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={clearImage}
+                    aria-label="Remove attachment"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
               <Textarea
                 ref={textareaRef}
                 value={input}
                 onChange={handleTextareaChange}
                 onKeyDown={handleKeyDown}
-                placeholder={readOnly ? "You have view-only access to this project" : "Describe what you want to build..."}
-                className="min-h-[48px] max-h-[200px] pr-12 resize-none bg-muted/30 border-border/30 focus:border-primary/50 rounded-xl text-sm"
+                placeholder={
+                  readOnly
+                    ? "You have view-only access to this project"
+                    : image
+                      ? "Add a message (optional) — image will be sent"
+                      : "Describe what you want to build..."
+                }
+                className="min-h-[48px] max-h-[200px] pl-11 pr-12 resize-none bg-muted/30 border-border/30 focus:border-primary/50 rounded-xl text-sm"
                 disabled={isStreaming || readOnly}
                 rows={1}
               />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImagePick}
+              />
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                aria-label="Attach image"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isStreaming || readOnly}
+                className="absolute left-2 bottom-2 h-8 w-8 rounded-lg text-muted-foreground hover:text-primary"
+              >
+                <ImagePlus className="w-4 h-4" />
+              </Button>
               <Button
                 type="submit"
                 size="icon"
                 aria-label="Send message"
-                disabled={!input.trim() || isStreaming || readOnly}
+                disabled={(!input.trim() && !image) || isStreaming || readOnly}
                 className="absolute right-2 bottom-2 h-8 w-8 rounded-lg"
               >
                 {isStreaming ? (
@@ -258,9 +330,14 @@ function MessageItem({ message, isStreaming }: { message: ChatMessage, isStreami
       <div className="max-w-4xl mx-auto">
         {message.role === "user" ? (
           <div className="flex flex-col items-end gap-2">
-            <div className="bg-primary/10 text-primary-foreground text-sm py-2.5 px-4 rounded-2xl rounded-tr-none border border-primary/20 max-w-[85%]">
-              <p className="text-foreground leading-relaxed whitespace-pre-wrap">{message.content}</p>
-            </div>
+            {message.imageUrl && (
+              <AttachmentImage src={message.imageUrl} alt="User attachment" />
+            )}
+            {message.content && (
+              <div className="bg-primary/10 text-primary-foreground text-sm py-2.5 px-4 rounded-2xl rounded-tr-none border border-primary/20 max-w-[85%]">
+                <p className="text-foreground leading-relaxed whitespace-pre-wrap">{message.content}</p>
+              </div>
+            )}
             {message.createdAt && (
               <span className="text-[10px] text-muted-foreground px-1 uppercase tracking-tight">
                 {format(new Date(message.createdAt), "HH:mm")}

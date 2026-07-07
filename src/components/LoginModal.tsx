@@ -202,9 +202,9 @@ export function LoginModal() {
                     <label htmlFor="password" className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate-300">
                       password
                     </label>
-                    <a href="#forgot" className="font-mono text-[10px] text-slate-400 hover:text-primary transition-colors">
+                    <Link to="/forgot-password" className="font-mono text-[10px] text-slate-400 hover:text-primary transition-colors">
                       reset?
-                    </a>
+                    </Link>
                   </div>
                   <div className="flex items-center gap-2 border-b border-white/10 focus-within:border-primary-400 transition-colors">
                     <Input

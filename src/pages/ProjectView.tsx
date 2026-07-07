@@ -86,6 +86,7 @@ export function ProjectView() {
           content: msg.content,
           createdAt: msg.createdAt,
           events: msg.events,
+          imageUrl: msg.imageUrl ?? null,
         }));
         setMessages(formattedMessages);
         setProject(projectData);
@@ -123,17 +124,19 @@ export function ProjectView() {
     navigate("/login");
   };
 
-  const handleSendMessage = useCallback((content: string) => {
+  const handleSendMessage = useCallback((content: string, image?: File | null) => {
     if (!projectId) return;
 
     // Reset edited files tracker
     currentEditedFilesRef.current = [];
 
-    // Add user message
+    // Add user message (with local preview URL for image, if any)
+    const localImagePreview = image ? URL.createObjectURL(image) : null;
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: "user",
       content,
+      imageUrl: localImagePreview,
     };
 
     setMessages((prev) => [...prev, userMessage]);
@@ -211,7 +214,8 @@ export function ProjectView() {
           )
         );
         setIsStreaming(false);
-      }
+      },
+      image
     );
 
     return cleanup;

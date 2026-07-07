@@ -3,7 +3,7 @@ export type { FileNode };
 
 
 
-const BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "http://localhost:8080" : "");
+export const BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "http://localhost:8080" : "");
 
 export const getAuthToken = () => localStorage.getItem("auth_token");
 
@@ -158,6 +158,30 @@ export const api = {
     }
 
     return response.json();
+  },
+
+  async forgotPassword(email: string): Promise<void> {
+    const response = await fetch(`${BASE_URL}/api/v1/account/auth/forgot-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+
+    if (!response.ok) {
+      throw await buildApiError(response, "Failed to send password reset email");
+    }
+  },
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    const response = await fetch(`${BASE_URL}/api/v1/account/auth/reset-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, newPassword }),
+    });
+
+    if (!response.ok) {
+      throw await buildApiError(response, "Failed to reset password");
+    }
   },
 
   async getFiles(projectId: string): Promise<FileNode[]> {
@@ -343,18 +367,46 @@ export const api = {
     onChunk: (chunk: string) => void,
     onFile: (path: string, content: string) => void,
     onComplete: () => void,
-    onError: (error: Error) => void
+    onError: (error: Error) => void,
+    image?: File | null
   ) {
     const controller = new AbortController();
 
+    const hasImage = !!image;
+    const trimmedMessage = message?.trim() ?? "";
+
+    let body: BodyInit;
+    const headers: Record<string, string> = { ...getAuthHeaders() };
+
+    if (hasImage) {
+      const form = new FormData();
+      form.append("projectId", String(projectId));
+      if (trimmedMessage) form.append("message", trimmedMessage);
+      form.append("image", image as File);
+      body = form;
+      // NOTE: do NOT set Content-Type — browser will add multipart boundary
+    } else {
+      headers["Content-Type"] = "application/json";
+      body = JSON.stringify({ message: trimmedMessage, projectId });
+    }
+
     fetch(`${BASE_URL}/api/v1/intelligence/chat/stream`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
-      body: JSON.stringify({ message, projectId }),
+      headers,
+      body,
       signal: controller.signal,
     })
       .then(async (response) => {
-        if (!response.ok) throw new Error("Chat stream failed");
+        if (!response.ok) {
+          let msg = "Chat stream failed";
+          if (response.status === 400) msg = "Please enter a message or attach an image.";
+          else if (response.status === 403) msg = "Daily token limit reached or no access to this project.";
+          try {
+            const err = await response.clone().json();
+            if (err?.message) msg = err.message;
+          } catch { /* ignore */ }
+          throw new Error(msg);
+        }
 
         const reader = response.body?.getReader();
         if (!reader) throw new Error("No reader available");
@@ -413,6 +465,21 @@ export const api = {
 
     return () => controller.abort();
   },
+
+  /**
+   * Fetch a chat attachment image (requires auth header, so <img src> cannot
+   * hit the API directly). Returns an object URL the caller must revoke.
+   */
+  async fetchAttachment(relativePath: string): Promise<string> {
+    const url = relativePath.startsWith("http")
+      ? relativePath
+      : `${BASE_URL}${relativePath.startsWith("/") ? "" : "/"}${relativePath}`;
+    const response = await fetch(url, { headers: { ...getAuthHeaders() } });
+    if (!response.ok) throw new Error("Failed to load attachment");
+    const blob = await response.blob();
+    return URL.createObjectURL(blob);
+  },
+
 
   async getCurrentSubscription(): Promise<SubscriptionResponse> {
     const response = await fetch(`${BASE_URL}/api/v1/account/me/subscription`, {

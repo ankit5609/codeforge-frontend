@@ -8,6 +8,8 @@ import { LoginModal } from "./components/LoginModal";
 import { ProjectView } from "./pages/ProjectView";
 import { ProjectsDashboard } from "./pages/ProjectsDashboard";
 import Signup from "./pages/Signup";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Success from "./pages/Success";
 import Cancel from "./pages/Cancel";
 import Settings from "./pages/Settings";
@@ -29,6 +31,8 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<LoginModal />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/projects" element={<ProjectsDashboard />} />
           <Route path="/projects/:projectId" element={<ProjectView />} />
           <Route path="/success" element={<Success />} />

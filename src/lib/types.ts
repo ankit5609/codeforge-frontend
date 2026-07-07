@@ -53,6 +53,7 @@ export interface ChatMessage {
   content?: string; // Fallback raw text
   events: ChatEvent[]; // The granular events
   createdAt?: string;
+  imageUrl?: string | null; // Attachment path for user messages (relative API path)
 }
 
 export interface ProjectSummaryResponse {
