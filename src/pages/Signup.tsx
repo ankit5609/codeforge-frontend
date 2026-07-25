@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Loader2, ArrowRight, User, Check } from "lucide-react";
+import { Loader2, ArrowRight, User, Check, Play } from "lucide-react";
 import { api, setAuthToken, setUserInfo } from "@/lib/api";
 import { AuthLayout, AuthCard } from "@/components/auth/AuthLayout";
 import { useToast } from "@/hooks/use-toast";
@@ -10,6 +10,7 @@ import {
   FieldShell,
   SolidButton,
   OutlineButton,
+  QuietButton,
   Divider,
   GoogleIcon,
 } from "@/components/LoginModal";
@@ -42,6 +43,33 @@ export default function Signup() {
   const { toast } = useToast();
 
   const strength = useMemo(() => scorePassword(password), [password]);
+
+  const DEMO_EMAIL = "demo@codeforge.com";
+  const DEMO_PASSWORD = "password123";
+
+  const runDemoLogin = async () => {
+    setName("Demo User");
+    setEmail(DEMO_EMAIL);
+    setPassword(DEMO_PASSWORD);
+    setIsLoading(true);
+    try {
+      const response = await api.login({ username: DEMO_EMAIL, password: DEMO_PASSWORD });
+      setAuthToken(response.token);
+      if (response.user) setUserInfo(response.user);
+      toast({ title: "Demo session started", description: "Exploring CodeForge as the demo user." });
+      navigate("/projects");
+    } catch (error) {
+      toast({
+        title: "Demo unavailable",
+        description:
+          error instanceof Error && error.message && error.message.length < 120
+            ? error.message
+            : "We couldn't start the demo session right now. Please try again in a moment.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -212,6 +240,22 @@ export default function Signup() {
           <GoogleIcon />
           Continue with Google
         </OutlineButton>
+
+        <div className="p-3.5 rounded-lg border flex flex-col gap-2 mt-2.5" style={{ background: "rgba(255,90,46,0.06)", borderColor: "rgba(255,90,46,0.2)" }}>
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-mono uppercase tracking-wider font-semibold flex items-center gap-1.5" style={{ color: "var(--lp-ember)" }}>
+              ⚡ Demo Credentials
+            </span>
+          </div>
+          <div className="text-[12.5px] font-mono flex flex-wrap gap-x-4 gap-y-1" style={{ color: "var(--lp-ink-dim)" }}>
+            <span>Email: <strong style={{ color: "var(--lp-ink)" }}>demo@codeforge.com</strong></span>
+            <span>Password: <strong style={{ color: "var(--lp-ink)" }}>password123</strong></span>
+          </div>
+          <QuietButton onClick={runDemoLogin} disabled={isLoading}>
+            <Play className="w-3.5 h-3.5" />
+            Use Demo Account (Auto Log-in)
+          </QuietButton>
+        </div>
 
         <p className="text-center mt-5 text-[14px]" style={{ color: "var(--lp-ink-faint)" }}>
           Already have an account?{" "}

@@ -179,10 +179,22 @@ export function LoginModal() {
             <GoogleIcon />
             Continue with Google
           </OutlineButton>
-          <QuietButton onClick={runDemoLogin} disabled={isLoading}>
-            <Play className="w-3.5 h-3.5" />
-            Use the demo account
-          </QuietButton>
+          
+          <div className="p-3.5 rounded-lg border flex flex-col gap-2" style={{ background: "rgba(255,90,46,0.06)", borderColor: "rgba(255,90,46,0.2)" }}>
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-mono uppercase tracking-wider font-semibold flex items-center gap-1.5" style={{ color: "var(--lp-ember)" }}>
+                ⚡ Demo Credentials
+              </span>
+            </div>
+            <div className="text-[12.5px] font-mono flex flex-wrap gap-x-4 gap-y-1" style={{ color: "var(--lp-ink-dim)" }}>
+              <span>Email: <strong style={{ color: "var(--lp-ink)" }}>demo@codeforge.com</strong></span>
+              <span>Password: <strong style={{ color: "var(--lp-ink)" }}>password123</strong></span>
+            </div>
+            <QuietButton onClick={runDemoLogin} disabled={isLoading}>
+              <Play className="w-3.5 h-3.5" />
+              Use Demo Account (Auto Log-in)
+            </QuietButton>
+          </div>
         </div>
 
         <p className="text-center mt-5 text-[14px]" style={{ color: "var(--lp-ink-faint)" }}>
