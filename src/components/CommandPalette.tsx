@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   CommandDialog,
   CommandEmpty,
@@ -16,6 +16,8 @@ import {
   LogOut,
   Keyboard,
   FolderGit2,
+  Rocket,
+  Columns2,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { removeAuthToken, removeUserInfo } from "@/lib/api";
@@ -25,6 +27,14 @@ export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [projects, setProjects] = useState<ProjectSummaryResponse[]>([]);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Only in scope while actually inside a project workspace — these dispatch
+  // the same kind of custom event the codebase already uses for
+  // "open-command-palette" / "open-shortcuts", so no new API and no prop
+  // drilling into ProjectView is needed.
+  const projectMatch = location.pathname.match(/^\/projects\/(\d+)/);
+  const inWorkspace = !!projectMatch;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -66,6 +76,21 @@ export function CommandPalette() {
       <CommandInput placeholder="Search projects or run a command..." />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
+
+        {inWorkspace && (
+          <>
+            <CommandGroup heading="Workspace">
+              <CommandItem onSelect={() => run(() => window.dispatchEvent(new Event("workspace-deploy")))}>
+                <Rocket className="mr-2 h-4 w-4" /> Deploy &amp; run preview
+              </CommandItem>
+              <CommandItem onSelect={() => run(() => window.dispatchEvent(new Event("workspace-toggle-view")))}>
+                <Columns2 className="mr-2 h-4 w-4" /> Toggle Preview / Code
+              </CommandItem>
+            </CommandGroup>
+            <CommandSeparator />
+          </>
+        )}
+
         <CommandGroup heading="Actions">
           <CommandItem onSelect={() => run(() => navigate("/projects?new=1"))}>
             <Plus className="mr-2 h-4 w-4" /> New project

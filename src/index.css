@@ -224,3 +224,205 @@
   .animate-logo-float { animation: logoFloat 6s infinite ease-in-out; }
   .animate-logo-glow { animation: logoGlow 4s infinite ease-in-out; }
 }
+
+/* ==========================================================================
+   LANDING PAGE — scoped design tokens & primitives
+   All styles below apply ONLY inside `.landing-scope` so the app theme
+   (Forest Graphite emerald) remains untouched.
+   ========================================================================== */
+.landing-scope {
+  --lp-bg: #0A0D12;
+  --lp-bg-raised: #12161D;
+  --lp-bg-raised-2: #1A1F28;
+  --lp-border: #232936;
+  --lp-border-soft: rgba(237, 239, 243, 0.09);
+  --lp-ink: #EDEFF3;
+  --lp-ink-dim: #8B93A4;
+  --lp-ink-faint: #545D6E;
+  --lp-ember: #FF5A2E;
+  --lp-ember-dim: #C1401B;
+  --lp-ember-glow: rgba(255, 90, 46, 0.30);
+  --lp-brass: #E8B84B;
+  --lp-brass-glow: rgba(232, 184, 75, 0.22);
+  --lp-teal: #45C4B8;
+  --lp-teal-glow: rgba(69, 196, 184, 0.22);
+  --lp-ease: cubic-bezier(.16, .8, .3, 1);
+
+  background: var(--lp-bg);
+  color: var(--lp-ink);
+  font-family: 'Manrope', 'Segoe UI', sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  background-image: radial-gradient(circle, rgba(237, 239, 243, 0.035) 1px, transparent 1px);
+  background-size: 26px 26px;
+  min-height: 100vh;
+}
+
+.landing-scope[data-side][data-align] {
+  min-height: 0;
+  background-image: none;
+}
+
+.landing-scope h1,
+.landing-scope h2,
+.landing-scope h3,
+.landing-scope h4 {
+  font-family: 'Bricolage Grotesque', 'Segoe UI', sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--lp-ink);
+  margin: 0;
+}
+
+.landing-scope .lp-container {
+  max-width: 1560px;
+  margin: 0 auto;
+  padding: 0 48px;
+}
+@media (max-width: 1024px) {
+  .landing-scope .lp-container { padding: 0 32px; }
+}
+@media (max-width: 640px) {
+  .landing-scope .lp-container { padding: 0 20px; }
+}
+
+
+/* Consistent vertical rhythm — one scale for the entire page */
+.landing-scope .lp-section    { padding: 96px 0; }
+.landing-scope .lp-section-lg { padding: 112px 0; }
+.landing-scope .lp-section-sm { padding: 80px 0; }
+.landing-scope .lp-hero       { padding: 128px 0 112px; }
+.landing-scope .lp-cta        { padding: 96px 0; }
+@media (max-width: 900px) {
+  .landing-scope .lp-section    { padding: 72px 0; }
+  .landing-scope .lp-section-lg { padding: 80px 0; }
+  .landing-scope .lp-section-sm { padding: 64px 0; }
+  .landing-scope .lp-hero       { padding: 96px 0 80px; }
+  .landing-scope .lp-cta        { padding: 80px 0; }
+}
+@media (max-width: 640px) {
+  .landing-scope .lp-section    { padding: 56px 0; }
+  .landing-scope .lp-section-lg { padding: 64px 0; }
+  .landing-scope .lp-section-sm { padding: 48px 0; }
+  .landing-scope .lp-hero       { padding: 72px 0 56px; }
+  .landing-scope .lp-cta        { padding: 64px 0; }
+}
+
+.landing-scope .lp-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: var(--lp-brass);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  display: inline-block;
+}
+
+.landing-scope .lp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: 'Manrope', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  padding: 13px 24px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  transition: transform .18s var(--lp-ease), border-color .18s, background .18s, box-shadow .18s;
+  white-space: nowrap;
+  cursor: pointer;
+  text-decoration: none;
+}
+.landing-scope .lp-btn-solid { background: var(--lp-ember); color: #160800; }
+.landing-scope .lp-btn-solid:hover { background: #FF6C43; box-shadow: 0 8px 24px -8px var(--lp-ember-glow); transform: translateY(-1px); }
+.landing-scope .lp-btn-ghost { background: transparent; color: var(--lp-ink); border-color: var(--lp-border); }
+.landing-scope .lp-btn-ghost:hover { border-color: var(--lp-ink-dim); background: var(--lp-bg-raised); }
+.landing-scope .lp-btn-lg { padding: 16px 30px; font-size: 16px; }
+.landing-scope .lp-btn-block { width: 100%; }
+
+.landing-scope ::selection { background: var(--lp-ember-glow); color: var(--lp-ink); }
+
+/* Live pulse dot used by demo + status */
+.landing-scope .lp-live-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--lp-teal);
+  box-shadow: 0 0 0 3px var(--lp-teal-glow);
+  animation: lpPulse 2.4s ease-in-out infinite;
+}
+@keyframes lpPulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+
+/* Blinking caret for typing effect */
+.landing-scope .lp-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background: var(--lp-ember);
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: lpBlink 1s steps(2) infinite;
+}
+@keyframes lpBlink { 50% { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-scope .lp-live-dot,
+  .landing-scope .lp-caret { animation: none !important; }
+}
+
+
+/* Auth pages inputs + buttons (scoped) */
+.landing-scope .lp-input {
+  width: 100%;
+  background: var(--lp-bg-raised-2);
+  border: 1px solid var(--lp-border);
+  border-radius: 10px;
+  padding: 12px 14px 12px 42px;
+  color: var(--lp-ink);
+  font-family: 'Manrope', 'Segoe UI', sans-serif;
+  font-size: 14.5px;
+  line-height: 1.4;
+  outline: 0;
+  transition: border-color .15s, box-shadow .15s, background .15s;
+}
+.landing-scope .lp-input::placeholder { color: var(--lp-ink-faint); }
+.landing-scope .lp-input:focus {
+  border-color: var(--lp-ember);
+  box-shadow: 0 0 0 3px rgba(255, 90, 46, 0.14);
+}
+.landing-scope .lp-input:disabled { opacity: .6; cursor: not-allowed; }
+
+.landing-scope .lp-auth-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%;
+  font-family: 'Manrope', 'Segoe UI', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  padding: 13px 20px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  transition: transform .18s var(--lp-ease), box-shadow .18s, background .18s, border-color .18s, color .18s;
+  cursor: pointer;
+}
+.landing-scope .lp-auth-btn:disabled { opacity: .6; cursor: not-allowed; transform: none !important; }
+.landing-scope .lp-auth-btn--solid { background: var(--lp-ember); color: #160800; }
+.landing-scope .lp-auth-btn--solid:hover:not(:disabled) {
+  background: #FF6C43;
+  box-shadow: 0 10px 28px -10px var(--lp-ember-glow);
+  transform: translateY(-1px);
+}
+.landing-scope .lp-auth-btn--outline {
+  background: transparent;
+  border-color: var(--lp-border);
+  color: var(--lp-ink);
+}
+.landing-scope .lp-auth-btn--outline:hover:not(:disabled) {
+  border-color: var(--lp-ink-dim);
+  background: var(--lp-bg-raised-2);
+}
+.landing-scope .lp-auth-btn--quiet {
+  background: transparent;
+  border-color: transparent;
+  color: var(--lp-ink-faint);
+  font-weight: 600;
+}
+.landing-scope .lp-auth-btn--quiet:hover:not(:disabled) { color: var(--lp-brass); }

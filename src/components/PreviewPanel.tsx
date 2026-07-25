@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Play, Loader2, ExternalLink, RefreshCw, Globe } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { StateView } from "@/components/StateView";
 import { api, PREVIEW_URL_KEY } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -99,71 +98,77 @@ export function PreviewPanel({ projectId, runtimeError, onDismiss, onFix }: Prev
     setIframeKey((prev) => prev + 1);
   };
 
-  return (
-    <div className="flex flex-col h-full bg-background">
-      {/* URL Bar */}
-      <div className="h-12 shrink-0 flex items-center gap-2 px-3 border-b border-border/60 bg-panel">
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Refresh preview"
-            onClick={handleRefresh}
-            disabled={!previewUrl || isWaitingForServer}
-            className="h-7 w-7 text-muted-foreground hover:text-foreground"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-          </Button>
-        </div>
+  // New: lets the workspace-aware command palette trigger a deploy without
+  // prop-drilling or duplicating this logic elsewhere (Milestone 5).
+  useEffect(() => {
+    const onWorkspaceDeploy = () => {
+      if (!isDeploying && !isWaitingForServer) handleDeploy();
+    };
+    window.addEventListener("workspace-deploy", onWorkspaceDeploy);
+    return () => window.removeEventListener("workspace-deploy", onWorkspaceDeploy);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDeploying, isWaitingForServer]);
 
-        <div className="flex-1 flex items-center h-8 px-3 rounded-lg bg-muted/40 text-xs text-muted-foreground border border-border/50">
-          <Globe className="w-3.5 h-3.5 mr-2 shrink-0 text-primary/70" />
-          <span className="truncate">
+  return (
+    <div className="flex flex-col h-full" style={{ background: "var(--lp-bg)" }}>
+      {/* URL Bar */}
+      <div className="h-12 shrink-0 flex items-center gap-2 px-3" style={{ borderBottom: "1px solid var(--lp-border-soft)", background: "var(--lp-bg-raised)" }}>
+        <button
+          aria-label="Refresh preview"
+          onClick={handleRefresh}
+          disabled={!previewUrl || isWaitingForServer}
+          className="h-7 w-7 rounded-md flex items-center justify-center transition-colors disabled:opacity-40"
+          style={{ color: "var(--lp-ink-faint)" }}
+        >
+          <RefreshCw className="w-3.5 h-3.5" />
+        </button>
+
+        <div className="flex-1 flex items-center h-8 px-3 rounded-lg text-xs" style={{ background: "var(--lp-bg-raised-2)", color: "var(--lp-ink-faint)", border: "1px solid var(--lp-border)" }}>
+          <Globe className="w-3.5 h-3.5 mr-2 shrink-0" style={{ color: "var(--lp-teal)" }} />
+          <span className="truncate font-mono">
             {previewUrl || "No preview running yet"}
           </span>
         </div>
 
         <div className="flex items-center gap-1">
           {previewUrl && (
-            <Button
-              variant="ghost"
-              size="icon"
+            <button
               aria-label="Open preview in new tab"
               onClick={() => window.open(previewUrl, "_blank")}
-              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+              className="h-7 w-7 rounded-md flex items-center justify-center transition-colors"
+              style={{ color: "var(--lp-ink-faint)" }}
             >
               <ExternalLink className="w-3.5 h-3.5" />
-            </Button>
+            </button>
           )}
-          <Button
+          <button
             onClick={handleDeploy}
             disabled={isDeploying || isWaitingForServer}
-            size="sm"
-            className="h-7 px-3 bg-primary hover:bg-primary/90 text-xs font-medium"
+            className="lp-btn lp-btn-solid !h-7 !px-3 !text-xs disabled:opacity-60"
           >
             {isDeploying ? (
               <>
-                <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />
+                <Loader2 className="w-3 h-3 animate-spin" />
                 Deploying
               </>
             ) : (
               <>
-                <Play className="w-3 h-3 mr-1.5" />
+                <Play className="w-3 h-3" />
                 Run Preview
               </>
             )}
-          </Button>
+          </button>
         </div>
       </div>
 
       {/* Preview Area */}
-      <div className="flex-1 bg-muted/20">
+      <div className="flex-1" style={{ background: "var(--lp-bg)" }}>
         {isWaitingForServer ? (
           <div className="flex flex-col items-center justify-center h-full text-center p-8 gap-4">
-            <Loader2 className="w-10 h-10 text-primary animate-spin" />
+            <Loader2 className="w-10 h-10 animate-spin" style={{ color: "var(--lp-ember)" }} />
             <div>
-              <p className="text-sm font-medium text-foreground">Starting preview server...</p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-sm font-medium" style={{ color: "var(--lp-ink)" }}>Starting preview server...</p>
+              <p className="text-xs mt-1" style={{ color: "var(--lp-ink-faint)" }}>
                 Installing dependencies &amp; launching Vite ({waitAttempt * 3}s elapsed)
               </p>
             </div>
@@ -171,8 +176,8 @@ export function PreviewPanel({ projectId, runtimeError, onDismiss, onFix }: Prev
               {Array.from({ length: 5 }).map((_, i) => (
                 <span
                   key={i}
-                  className="w-1.5 h-1.5 rounded-full bg-primary/40 animate-pulse"
-                  style={{ animationDelay: `${i * 0.15}s` }}
+                  className="w-1.5 h-1.5 rounded-full animate-pulse"
+                  style={{ background: "var(--lp-ember)", opacity: 0.5, animationDelay: `${i * 0.15}s` }}
                 />
               ))}
             </div>

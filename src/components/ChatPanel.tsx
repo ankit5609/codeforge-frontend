@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Bot, ThumbsUp, ThumbsDown, Copy, RotateCcw, MoreHorizontal, FileCode, Zap, ImagePlus, X } from "lucide-react";
+import { Send, Loader2, Bot, ThumbsUp, ThumbsDown, Copy, RotateCcw, ImagePlus, X, Camera } from "lucide-react";
 import { AttachmentImage } from "@/components/AttachmentImage";
 import assistantLogo from "@/assets/assistant-logo.png";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StateView } from "@/components/StateView";
@@ -16,27 +15,25 @@ import { deriveTokenUsage, formatNumber } from "@/lib/usage";
 function ChatLoadingSkeleton() {
   return (
     <div className="flex flex-col gap-6 p-5" aria-hidden="true">
-      {/* incoming bubble */}
       <div className="space-y-2.5">
         <div className="flex items-center gap-2">
-          <Skeleton className="w-6 h-6 rounded-lg" />
-          <Skeleton className="h-3.5 w-24 rounded" />
+          <Skeleton className="w-6 h-6 rounded-lg" style={{ background: "var(--lp-bg-raised-2)" }} />
+          <Skeleton className="h-3.5 w-24 rounded" style={{ background: "var(--lp-bg-raised-2)" }} />
         </div>
-        <Skeleton className="h-3 w-[85%] rounded" />
-        <Skeleton className="h-3 w-[70%] rounded" />
-        <Skeleton className="h-3 w-[55%] rounded" />
+        <Skeleton className="h-3 w-[85%] rounded" style={{ background: "var(--lp-bg-raised-2)" }} />
+        <Skeleton className="h-3 w-[70%] rounded" style={{ background: "var(--lp-bg-raised-2)" }} />
+        <Skeleton className="h-3 w-[55%] rounded" style={{ background: "var(--lp-bg-raised-2)" }} />
       </div>
-      {/* outgoing bubble */}
       <div className="flex flex-col items-end gap-2">
-        <Skeleton className="h-10 w-[60%] rounded-2xl rounded-tr-none" />
+        <Skeleton className="h-10 w-[60%] rounded-2xl rounded-tr-none" style={{ background: "var(--lp-bg-raised-2)" }} />
       </div>
       <div className="space-y-2.5">
         <div className="flex items-center gap-2">
-          <Skeleton className="w-6 h-6 rounded-lg" />
-          <Skeleton className="h-3.5 w-20 rounded" />
+          <Skeleton className="w-6 h-6 rounded-lg" style={{ background: "var(--lp-bg-raised-2)" }} />
+          <Skeleton className="h-3.5 w-20 rounded" style={{ background: "var(--lp-bg-raised-2)" }} />
         </div>
-        <Skeleton className="h-3 w-[78%] rounded" />
-        <Skeleton className="h-20 w-full rounded-xl" />
+        <Skeleton className="h-3 w-[78%] rounded" style={{ background: "var(--lp-bg-raised-2)" }} />
+        <Skeleton className="h-20 w-full rounded-xl" style={{ background: "var(--lp-bg-raised-2)" }} />
       </div>
     </div>
   );
@@ -48,9 +45,9 @@ export interface ChatMessage {
   content: string;
   isStreaming?: boolean;
   createdAt?: string;
-  events?: ChatEvent[]; // Structured events from the database
+  events?: ChatEvent[];
   editedFiles?: string[];
-  imageUrl?: string | null; // Attachment URL for user messages
+  imageUrl?: string | null;
 }
 
 interface ChatPanelProps {
@@ -60,6 +57,12 @@ interface ChatPanelProps {
   isLoading?: boolean;
   readOnly?: boolean;
 }
+
+// Same heuristic the backend's own system prompt uses to distinguish the two
+// real multimodal intents (bug-fix vs design-replication) — mirrored here
+// only to label the attachment, not to change what gets sent.
+const BUG_WORDS = ["bug", "error", "broken", "wrong", "issue", "crash", "fix"];
+const looksLikeBugReport = (text: string) => BUG_WORDS.some((w) => text.toLowerCase().includes(w));
 
 export function ChatPanel({ messages, onSendMessage, isStreaming, isLoading, readOnly }: ChatPanelProps) {
   const [input, setInput] = useState("");
@@ -118,7 +121,6 @@ export function ChatPanel({ messages, onSendMessage, isStreaming, isLoading, rea
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isStreaming || isLimitReached) return;
-    // Allow send when either text OR image is present
     if (!input.trim() && !image) return;
 
     onSendMessage(input.trim(), image);
@@ -147,27 +149,20 @@ export function ChatPanel({ messages, onSendMessage, isStreaming, isLoading, rea
   const hoursUntilReset = 24 - new Date().getUTCHours();
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col h-full" style={{ background: "var(--lp-bg)" }}>
       {/* Panel header */}
-      <div className="h-12 shrink-0 flex items-center gap-2 px-4 border-b border-border/60 bg-panel">
-        <img
-          src={assistantLogo}
-          alt="Assistant"
-          width={24}
-          height={24}
-          className="h-6 w-6 object-contain drop-shadow-[0_0_8px_rgba(16,185,129,0.35)]"
-        />
-        <span className="font-display font-semibold text-sm text-foreground">Assistant</span>
-        <span className="text-xs text-muted-foreground">· your build partner</span>
+      <div className="h-12 shrink-0 flex items-center gap-2 px-4" style={{ borderBottom: "1px solid var(--lp-border-soft)", background: "var(--lp-bg-raised)" }}>
+        <img src={assistantLogo} alt="Assistant" width={24} height={24} className="h-6 w-6 object-contain" style={{ filter: "drop-shadow(0 0 8px rgba(255,90,46,0.35))" }} />
+        <span className="font-semibold text-sm" style={{ fontFamily: "'Bricolage Grotesque', sans-serif", color: "var(--lp-ink)" }}>Assistant</span>
+        <span className="text-xs" style={{ color: "var(--lp-ink-faint)" }}>· your build partner</span>
         {subscription && (
           <span
-            className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/40 px-2.5 py-1 text-xs text-muted-foreground"
+            className="ml-auto inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-mono"
+            style={{ border: "1px solid var(--lp-border)", background: "var(--lp-bg-raised-2)", color: "var(--lp-ink-faint)" }}
             title="AI tokens used this cycle"
           >
-            <Zap className="h-3 w-3 text-primary" />
-            {tokenUsage.unlimited
-              ? "Unlimited"
-              : `${formatNumber(tokenUsage.used)} / ${formatNumber(tokenUsage.limit)}`}
+            <span className="lp-live-dot" />
+            {tokenUsage.unlimited ? "Unlimited" : `${formatNumber(tokenUsage.used)} / ${formatNumber(tokenUsage.limit)}`}
           </span>
         )}
       </div>
@@ -177,11 +172,7 @@ export function ChatPanel({ messages, onSendMessage, isStreaming, isLoading, rea
         {isLoading ? (
           <ChatLoadingSkeleton />
         ) : messages.length === 0 ? (
-          <StateView
-            icon={Bot}
-            title="Let's build something"
-            description="Describe the feature, page, or change you have in mind and I'll get to work."
-          >
+          <StateView icon={Bot} title="Let's build something" description="Describe the feature, page, or change you have in mind and I'll get to work.">
             {!readOnly && (
               <div className="flex flex-wrap items-center justify-center gap-2 max-w-sm pt-1">
                 {["Build a landing page", "Add a dashboard", "Create a contact form"].map((s) => (
@@ -189,19 +180,27 @@ export function ChatPanel({ messages, onSendMessage, isStreaming, isLoading, rea
                     key={s}
                     type="button"
                     onClick={() => onSendMessage(s)}
-                    className="text-xs px-3 py-1.5 rounded-full border border-border/60 bg-muted/30 text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/5 transition-colors"
+                    className="text-xs px-3 py-1.5 rounded-full transition-colors"
+                    style={{ border: "1px solid var(--lp-border)", background: "var(--lp-bg-raised)", color: "var(--lp-ink-faint)" }}
                   >
                     {s}
                   </button>
                 ))}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-xs px-3 py-1.5 rounded-full transition-colors inline-flex items-center gap-1.5"
+                  style={{ border: "1px dashed rgba(255,90,46,0.35)", background: "rgba(255,90,46,0.06)", color: "var(--lp-ember)" }}
+                >
+                  <Camera className="w-3 h-3" /> Fix a bug or copy a design from a screenshot
+                </button>
               </div>
             )}
           </StateView>
         ) : (
           <div className="flex flex-col">
             {messages.map((message) => (
-              <MessageItem key={message.id} message={message}
-                isStreaming={isStreaming && message.isStreaming} />
+              <MessageItem key={message.id} message={message} isStreaming={isStreaming && message.isStreaming} />
             ))}
           </div>
         )}
@@ -209,40 +208,26 @@ export function ChatPanel({ messages, onSendMessage, isStreaming, isLoading, rea
       </div>
 
       {/* Input Area */}
-      <div className="shrink-0 p-3 border-t border-border/60 bg-card">
+      <div className="shrink-0 p-3" style={{ borderTop: "1px solid var(--lp-border-soft)", background: "var(--lp-bg-raised)" }}>
         {isLimitReached && !readOnly ? (
-          <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-center space-y-3">
-            <div className="flex items-center justify-center gap-2 text-amber-500 font-semibold text-sm">
-              <Zap className="h-4.5 w-4.5 fill-amber-500" />
-              <span>Out of messages</span>
+          <div className="rounded-xl p-4 text-center space-y-3" style={{ border: "1px solid rgba(232,184,75,0.3)", background: "rgba(232,184,75,0.08)" }}>
+            <div className="flex items-center justify-center gap-2 font-semibold text-sm" style={{ color: "var(--lp-brass)" }}>
+              <span>⚡ Out of messages</span>
             </div>
-            <p className="text-xs text-amber-200/80 leading-relaxed">
+            <p className="text-xs leading-relaxed" style={{ color: "var(--lp-ink-dim)" }}>
               Resets in {hoursUntilReset} {hoursUntilReset === 1 ? 'hour' : 'hours'}. Upgrade your plan
             </p>
-            <Button
-              type="button"
-              onClick={() => window.location.href = "/settings"}
-              className="w-full bg-amber-600 hover:bg-amber-500 text-black font-semibold rounded-lg text-xs py-2 transition-colors active:scale-[0.98]"
-            >
+            <button type="button" onClick={() => (window.location.href = "/settings")} className="lp-btn lp-btn-solid !w-full !text-xs !py-2">
               Upgrade Plan
-            </Button>
+            </button>
           </div>
         ) : (
           <>
             <form onSubmit={handleSubmit} className="relative">
               {imagePreview && (
-                <div className="mb-2 inline-flex items-start gap-2 rounded-lg border border-border/50 bg-muted/30 p-2">
-                  <img
-                    src={imagePreview}
-                    alt="Attachment preview"
-                    className="h-16 w-16 rounded-md object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={clearImage}
-                    aria-label="Remove attachment"
-                    className="text-muted-foreground hover:text-foreground transition-colors"
-                  >
+                <div className="mb-2 inline-flex items-start gap-2 rounded-lg p-2" style={{ border: "1px solid var(--lp-border)", background: "var(--lp-bg-raised-2)" }}>
+                  <img src={imagePreview} alt="Attachment preview" className="h-16 w-16 rounded-md object-cover" />
+                  <button type="button" onClick={clearImage} aria-label="Remove attachment" className="transition-colors" style={{ color: "var(--lp-ink-faint)" }}>
                     <X className="h-4 w-4" />
                   </button>
                 </div>
@@ -259,50 +244,37 @@ export function ChatPanel({ messages, onSendMessage, isStreaming, isLoading, rea
                       ? "Add a message (optional) — image will be sent"
                       : "Describe what you want to build..."
                 }
-                className="min-h-[48px] max-h-[200px] pl-11 pr-12 resize-none bg-muted/30 border-border/30 focus:border-primary/50 rounded-xl text-sm"
+                className="lp-input min-h-[48px] max-h-[200px] !pl-11 !pr-12 resize-none"
                 disabled={isStreaming || readOnly}
                 rows={1}
               />
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleImagePick}
-              />
-              <Button
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImagePick} />
+              <button
                 type="button"
-                size="icon"
-                variant="ghost"
                 aria-label="Attach image"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isStreaming || readOnly}
-                className="absolute left-2 bottom-2 h-8 w-8 rounded-lg text-muted-foreground hover:text-primary"
+                className="absolute left-2 bottom-2 h-8 w-8 rounded-lg flex items-center justify-center transition-colors disabled:opacity-40"
+                style={{ color: "var(--lp-ink-faint)" }}
               >
                 <ImagePlus className="w-4 h-4" />
-              </Button>
-              <Button
+              </button>
+              <button
                 type="submit"
-                size="icon"
                 aria-label="Send message"
                 disabled={(!input.trim() && !image) || isStreaming || readOnly}
-                className="absolute right-2 bottom-2 h-8 w-8 rounded-lg"
+                className="absolute right-2 bottom-2 h-8 w-8 rounded-lg flex items-center justify-center disabled:opacity-40 transition-colors"
+                style={{ background: "var(--lp-ember)", color: "#160800" }}
               >
-                {isStreaming ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Send className="w-4 h-4" />
-                )}
-              </Button>
+                {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              </button>
             </form>
 
             <div className="flex items-center justify-between mt-2 px-1">
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <span>Press Enter to send, Shift+Enter for a new line</span>
-              </div>
+              <span className="text-xs" style={{ color: "var(--lp-ink-faint)" }}>Press Enter to send, Shift+Enter for a new line</span>
               {isStreaming && (
-                <span className="text-xs text-muted-foreground flex items-center gap-1 font-medium">
-                  <Loader2 className="w-3 h-3 animate-spin text-primary" />
+                <span className="text-xs flex items-center gap-1 font-medium" style={{ color: "var(--lp-ink-faint)" }}>
+                  <Loader2 className="w-3 h-3 animate-spin" style={{ color: "var(--lp-ember)" }} />
                   Thinking...
                 </span>
               )}
@@ -314,70 +286,60 @@ export function ChatPanel({ messages, onSendMessage, isStreaming, isLoading, rea
   );
 }
 
-// Inner Component to handle logic per message
-function MessageItem({ message, isStreaming }: { message: ChatMessage, isStreaming: boolean }) {
-  // Use the stream parser to turn raw XML text into Event objects live
-  // 1. Parse content live if we are streaming OR if we don't have DB events yet
+function MessageItem({ message, isStreaming }: { message: ChatMessage; isStreaming: boolean }) {
   const liveEvents = useStreamParser(message.content || "");
+  const eventsToRender = (message.events && message.events.length > 0) ? message.events : liveEvents;
 
-  // 2. Logic: If we have DB events, use them. Otherwise, use the parsed content.
-  const eventsToRender = (message.events && message.events.length > 0)
-    ? message.events
-    : liveEvents;
+  const attachmentLabel = message.imageUrl ? (looksLikeBugReport(message.content || "") ? "Bug report" : "Design reference") : null;
 
   return (
-    <div className={`p-5 border-b border-border/10 ${message.role === 'user' ? 'bg-muted/10' : 'bg-background'}`}>
+    <div className="p-5" style={{ borderBottom: "1px solid var(--lp-border-soft)", background: message.role === 'user' ? 'var(--lp-bg-raised)' : 'var(--lp-bg)' }}>
       <div className="max-w-4xl mx-auto">
         {message.role === "user" ? (
           <div className="flex flex-col items-end gap-2">
             {message.imageUrl && (
-              <AttachmentImage src={message.imageUrl} alt="User attachment" />
+              <div className="flex flex-col items-end gap-1.5">
+                {attachmentLabel && (
+                  <span className="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: "var(--lp-bg-raised-2)", color: "var(--lp-ink-faint)", border: "1px solid var(--lp-border)" }}>
+                    {attachmentLabel}
+                  </span>
+                )}
+                <AttachmentImage src={message.imageUrl} alt="User attachment" />
+              </div>
             )}
             {message.content && (
-              <div className="bg-primary/10 text-primary-foreground text-sm py-2.5 px-4 rounded-2xl rounded-tr-none border border-primary/20 max-w-[85%]">
-                <p className="text-foreground leading-relaxed whitespace-pre-wrap">{message.content}</p>
+              <div className="text-sm py-2.5 px-4 rounded-2xl rounded-tr-none max-w-[85%]" style={{ background: "rgba(255,90,46,0.10)", border: "1px solid rgba(255,90,46,0.2)" }}>
+                <p className="leading-relaxed whitespace-pre-wrap" style={{ color: "var(--lp-ink)" }}>{message.content}</p>
               </div>
             )}
             {message.createdAt && (
-              <span className="text-[10px] text-muted-foreground px-1 uppercase tracking-tight">
+              <span className="text-[10px] px-1 uppercase tracking-tight" style={{ color: "var(--lp-ink-faint)" }}>
                 {format(new Date(message.createdAt), "HH:mm")}
               </span>
             )}
           </div>
         ) : (
           <div className="space-y-4">
-            {/* Render granular events (Thought, Tool, Message, File) */}
             <div className="flex flex-col gap-3">
-              {eventsToRender.map((event, idx) => {
-                const isLast = idx === eventsToRender.length - 1;
-                return (
-                  <ChatEventRenderer
-                    key={idx}
-                    event={event}
-                    // It is "loading" only if:
-                    // 1. The message is currently streaming
-                    // 2. AND this is the last event in the list
-                    isLoading={isStreaming && isLast}
-                  />
-                );
-              })}
+              {eventsToRender.map((event, idx) => (
+                <ChatEventRenderer key={idx} event={event} isLoading={isStreaming && idx === eventsToRender.length - 1} />
+              ))}
             </div>
 
-            {/* Action buttons for assistant message */}
             {!message.isStreaming && eventsToRender.length > 0 && (
               <div className="flex items-center gap-1 pt-2">
-                <Button variant="ghost" size="icon" aria-label="Retry response" className="h-8 w-8 text-muted-foreground hover:text-primary">
+                <button aria-label="Retry response" className="h-8 w-8 rounded-md flex items-center justify-center transition-colors" style={{ color: "var(--lp-ink-faint)" }}>
                   <RotateCcw className="w-3.5 h-3.5" />
-                </Button>
-                <Button variant="ghost" size="icon" aria-label="Good response" className="h-8 w-8 text-muted-foreground hover:text-primary">
+                </button>
+                <button aria-label="Good response" className="h-8 w-8 rounded-md flex items-center justify-center transition-colors" style={{ color: "var(--lp-ink-faint)" }}>
                   <ThumbsUp className="w-3.5 h-3.5" />
-                </Button>
-                <Button variant="ghost" size="icon" aria-label="Bad response" className="h-8 w-8 text-muted-foreground hover:text-primary">
+                </button>
+                <button aria-label="Bad response" className="h-8 w-8 rounded-md flex items-center justify-center transition-colors" style={{ color: "var(--lp-ink-faint)" }}>
                   <ThumbsDown className="w-3.5 h-3.5" />
-                </Button>
-                <Button variant="ghost" size="icon" aria-label="Copy message" className="h-8 w-8 text-muted-foreground hover:text-primary">
+                </button>
+                <button aria-label="Copy message" className="h-8 w-8 rounded-md flex items-center justify-center transition-colors" style={{ color: "var(--lp-ink-faint)" }}>
                   <Copy className="w-3.5 h-3.5" />
-                </Button>
+                </button>
               </div>
             )}
           </div>

@@ -3,7 +3,6 @@ import { FileTree } from "./FileTree";
 import { CodeEditor } from "./CodeEditor";
 import { FileTabs } from "./FileTabs";
 import { DiffViewer } from "./DiffViewer";
-import { Button } from "@/components/ui/button";
 import { Wand2, GitCompare, Loader2 } from "lucide-react";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { api, FileNode, OPEN_TABS_KEY, ACTIVE_TAB_KEY } from "@/lib/api";
@@ -212,9 +211,9 @@ export function CodePanel({ projectId, updatedFiles, refreshKey = 0 }: CodePanel
       <ResizablePanelGroup direction="horizontal" className="flex-1">
         {/* File Tree */}
         <ResizablePanel defaultSize={22} minSize={14} maxSize={40}>
-          <div className="h-full overflow-y-auto border-r border-border/50 bg-panel">
-            <div className="panel-header">
-              <span className="text-sm font-medium">Files</span>
+          <div className="h-full overflow-y-auto" style={{ borderRight: "1px solid var(--lp-border-soft)", background: "var(--lp-bg-raised)" }}>
+            <div className="h-10 flex items-center px-4" style={{ borderBottom: "1px solid var(--lp-border-soft)" }}>
+              <span className="text-sm font-medium" style={{ color: "var(--lp-ink)" }}>Files</span>
             </div>
             <FileTree
               files={files}
@@ -225,13 +224,13 @@ export function CodePanel({ projectId, updatedFiles, refreshKey = 0 }: CodePanel
           </div>
         </ResizablePanel>
 
-        <ResizableHandle className="w-px bg-border/50 transition-colors hover:bg-primary/50" />
+        <ResizableHandle className="w-px transition-colors" style={{ background: "var(--lp-border)" }} />
 
         {/* Code Editor with Tabs */}
         <ResizablePanel defaultSize={78} minSize={50}>
           <div className="flex h-full min-w-0 flex-col">
             {/* Tabs + toolbar */}
-            <div className="flex items-center justify-between border-b border-border/50 bg-panel">
+            <div className="flex items-center justify-between" style={{ borderBottom: "1px solid var(--lp-border-soft)", background: "var(--lp-bg-raised)" }}>
               <div className="min-w-0 flex-1">
                 <FileTabs
                   openTabs={openTabs}
@@ -242,22 +241,20 @@ export function CodePanel({ projectId, updatedFiles, refreshKey = 0 }: CodePanel
               </div>
               <div className="flex shrink-0 items-center gap-1 px-2">
                 {isEdited && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                  <button
                     onClick={handleToggleDiff}
-                    className={cn("h-7 gap-1.5 text-xs", showDiff && "text-primary")}
+                    className={cn("h-7 px-2 rounded-md flex items-center gap-1.5 text-xs font-medium transition-colors")}
+                    style={{ color: showDiff ? "var(--lp-ember)" : "var(--lp-ink-faint)" }}
                   >
                     <GitCompare className="h-3.5 w-3.5" />
                     {showDiff ? "Code" : "Diff"}
-                  </Button>
+                  </button>
                 )}
-                <Button
-                  variant="ghost"
-                  size="sm"
+                <button
                   onClick={handleFormat}
                   disabled={!activeTab || !isFormattable(activeTab) || isFormatting || showDiff}
-                  className="h-7 gap-1.5 text-xs"
+                  className="h-7 px-2 rounded-md flex items-center gap-1.5 text-xs font-medium transition-colors disabled:opacity-40"
+                  style={{ color: "var(--lp-ink-faint)" }}
                 >
                   {isFormatting ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -265,7 +262,7 @@ export function CodePanel({ projectId, updatedFiles, refreshKey = 0 }: CodePanel
                     <Wand2 className="h-3.5 w-3.5" />
                   )}
                   Format
-                </Button>
+                </button>
               </div>
             </div>
 

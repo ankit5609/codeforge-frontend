@@ -1,19 +1,17 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Code, Eye, Loader2, LogOut, RotateCcw, Maximize2, RefreshCw, MoreVertical, Trash, Download, Edit, MessageSquare, Search, Keyboard, Settings as SettingsIcon } from "lucide-react";
+import { Code, Eye, Loader2, LogOut, MoreVertical, Trash, Download, Edit, MessageSquare, Search, Keyboard, Settings as SettingsIcon } from "lucide-react";
 import { DeployStatus, DeployState } from "@/components/DeployStatus";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { ChatPanel, ChatMessage } from "@/components/ChatPanel";
 import { CodePanel } from "@/components/CodePanel";
 import { PreviewPanel } from "@/components/PreviewPanel";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { api, isAuthenticated, removeAuthToken, getUserInfo, removeUserInfo } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 import { RuntimeErrorAlert, RuntimeError } from "@/components/RuntimeErrorAlert";
 import { generateGradient, cn } from "@/lib/utils";
@@ -22,6 +20,12 @@ import { ShareDialog } from "@/components/ShareDialog";
 
 type ViewMode = "code" | "preview";
 type MobileTab = "chat" | "code" | "preview";
+
+const ROLE_STYLE: Record<string, { bg: string; fg: string; border: string }> = {
+  OWNER: { bg: "rgba(255,90,46,0.10)", fg: "var(--lp-ember)", border: "rgba(255,90,46,0.22)" },
+  EDITOR: { bg: "rgba(232,184,75,0.10)", fg: "var(--lp-brass)", border: "rgba(232,184,75,0.22)" },
+  VIEWER: { bg: "var(--lp-bg-raised-2)", fg: "var(--lp-ink-faint)", border: "var(--lp-border)" },
+};
 
 export function ProjectView() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -224,9 +228,6 @@ export function ProjectView() {
   // Listen for runtime errors from the preview iframe
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      // Security check: ensure message is from our expected source if possible
-      // In local dev, origins might be localhost:5173 or localhost:8080
-
       const data = event.data;
       if (data?.type === 'PreviewError') {
         const error = data.payload;
@@ -235,7 +236,7 @@ export function ProjectView() {
           message: error.message,
           source: data.subType,
           stack: error.stack,
-          filename: error.source, // Map filename from payload source
+          filename: error.source,
           lineno: error.lineno,
           colno: error.colno,
         });
@@ -316,53 +317,63 @@ Please analyze this error and fix the code to resolve it.`;
     }
   };
 
+  // New: workspace-aware command palette (Milestone 5). Listens for the same
+  // kind of custom event the codebase already dispatches for
+  // open-command-palette / open-shortcuts — no new API, no prop drilling.
+  useEffect(() => {
+    const onToggleView = () => setViewMode((v) => (v === "code" ? "preview" : "code"));
+    window.addEventListener("workspace-toggle-view", onToggleView);
+    return () => window.removeEventListener("workspace-toggle-view", onToggleView);
+  }, []);
+
   if (!projectId) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Invalid project ID</p>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--lp-bg)", color: "var(--lp-ink-faint)" }}>
+        <p>Invalid project ID</p>
       </div>
     );
   }
 
   return (
-    <div className="h-dvh flex flex-col overflow-hidden bg-background">
-      <a href="#workspace-main" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 focus:bg-card focus:px-3 focus:py-1.5 focus:rounded-md focus:border focus:border-border focus:text-sm">Skip to content</a>
+    <div className="landing-scope h-dvh flex flex-col overflow-hidden relative" style={{ background: "var(--lp-bg)" }}>
+      <a href="#workspace-main" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-2 focus:left-2 focus:px-3 focus:py-1.5 focus:rounded-md focus:text-sm" style={{ background: "var(--lp-bg-raised)", border: "1px solid var(--lp-border)", color: "var(--lp-ink)" }}>Skip to content</a>
+
       {/* Workspace header */}
-      <header className="h-14 shrink-0 border-b border-border/60 bg-card/70 backdrop-blur-md flex items-center justify-between px-4">
+      <header className="h-14 shrink-0 backdrop-blur-md flex items-center justify-between px-4 relative z-20" style={{ borderBottom: "1px solid var(--lp-border-soft)", background: "rgba(18,22,29,0.75)" }}>
         <div className="flex items-center gap-3 min-w-0">
-          <button onClick={() => navigate("/projects")} className="text-muted-foreground hover:text-foreground transition-colors text-sm shrink-0">
+          <button onClick={() => navigate("/projects")} className="transition-colors text-sm shrink-0" style={{ color: "var(--lp-ink-faint)" }}>
             ← Projects
           </button>
-          <span className="w-px h-5 bg-border shrink-0" />
+          <span className="w-px h-5 shrink-0" style={{ background: "var(--lp-border)" }} />
           {project ? (
             <>
               <div
                 className="w-7 h-7 rounded-lg shadow-sm border border-white/10 shrink-0"
                 style={generateGradient(project.name)}
               />
-              <span className="font-display font-semibold text-base text-foreground truncate">{project.name}</span>
+              <span className="font-semibold text-base truncate" style={{ fontFamily: "'Bricolage Grotesque', sans-serif", color: "var(--lp-ink)" }}>{project.name}</span>
             </>
           ) : (
             <>
-              <Loader2 className="w-4 h-4 text-primary animate-spin" />
-              <span className="font-display font-medium text-base text-muted-foreground">Loading…</span>
+              <Loader2 className="w-4 h-4 animate-spin" style={{ color: "var(--lp-ember)" }} />
+              <span className="font-medium text-base" style={{ color: "var(--lp-ink-faint)" }}>Loading…</span>
             </>
           )}
           {project?.role !== 'VIEWER' && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="Project options" className="h-7 w-7 text-muted-foreground hover:text-foreground rounded-lg shrink-0">
+                <button aria-label="Project options" className="h-7 w-7 rounded-lg flex items-center justify-center transition-colors shrink-0" style={{ color: "var(--lp-ink-faint)" }}>
                   <MoreVertical className="w-4 h-4" />
-                </Button>
+                </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                <DropdownMenuItem onClick={openRenameDialog} className="cursor-pointer">
+              <DropdownMenuContent align="start" className="landing-scope rounded-[12px] p-1.5 z-50" style={{ background: "var(--lp-bg-raised)", border: "1px solid var(--lp-border)" }}>
+                <DropdownMenuItem onClick={openRenameDialog} className="cursor-pointer rounded-[8px] text-[13.5px]" style={{ color: "var(--lp-ink)" }}>
                   <Edit className="w-4 h-4 mr-2" /> Rename
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleDownloadProject} className="cursor-pointer">
+                <DropdownMenuItem onClick={handleDownloadProject} className="cursor-pointer rounded-[8px] text-[13.5px]" style={{ color: "var(--lp-ink)" }}>
                   <Download className="w-4 h-4 mr-2" /> Download
                 </DropdownMenuItem>
-                <DropdownMenuItem className="text-destructive focus:text-destructive cursor-pointer" onClick={handleDeleteProject}>
+                <DropdownMenuItem className="cursor-pointer rounded-[8px] text-[13.5px]" style={{ color: "var(--lp-ember)" }} onClick={handleDeleteProject}>
                   <Trash className="w-4 h-4 mr-2" /> Delete
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -372,23 +383,25 @@ Please analyze this error and fix the code to resolve it.`;
 
         <div className="hidden md:flex items-center">
           {/* View Mode Toggle (desktop) */}
-          <div className="flex items-center bg-muted/50 border border-border/60 rounded-full p-1">
+          <div className="flex items-center rounded-full p-1" style={{ background: "var(--lp-bg-raised)", border: "1px solid var(--lp-border)" }}>
             <button
               onClick={() => setViewMode("preview")}
-              className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium transition-all rounded-full ${viewMode === "preview"
-                ? "bg-primary/15 text-primary"
-                : "text-muted-foreground hover:text-foreground"
-                }`}
+              className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium transition-all rounded-full"
+              style={{
+                background: viewMode === "preview" ? "rgba(255,90,46,0.14)" : "transparent",
+                color: viewMode === "preview" ? "var(--lp-ember)" : "var(--lp-ink-faint)",
+              }}
             >
               <Eye className="w-3.5 h-3.5" />
               Preview
             </button>
             <button
               onClick={() => setViewMode("code")}
-              className={`flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium transition-all rounded-full ${viewMode === "code"
-                ? "bg-primary/15 text-primary"
-                : "text-muted-foreground hover:text-foreground"
-                }`}
+              className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium transition-all rounded-full"
+              style={{
+                background: viewMode === "code" ? "rgba(255,90,46,0.14)" : "transparent",
+                color: viewMode === "code" ? "var(--lp-ember)" : "var(--lp-ink-faint)",
+              }}
             >
               <Code className="w-3.5 h-3.5" />
               Code
@@ -397,32 +410,30 @@ Please analyze this error and fix the code to resolve it.`;
         </div>
 
         <div className="flex items-center gap-2">
-          <DeployStatus state={deployState} className="hidden lg:inline-flex" />
+          <DeployStatus state={deployState} pulse={deployState === "building"} className="hidden lg:inline-flex" />
           <button
             type="button"
             onClick={() => window.dispatchEvent(new Event("open-command-palette"))}
-            className="hidden md:inline-flex items-center gap-2 rounded-full border border-border/60 bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            className="hidden md:inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs transition-colors"
+            style={{ border: "1px solid var(--lp-border)", background: "var(--lp-bg-raised)", color: "var(--lp-ink-faint)" }}
           >
             <Search className="h-3.5 w-3.5" />
             Search
-            <kbd className="rounded border border-border bg-background px-1 text-[10px]">⌘K</kbd>
+            <kbd className="rounded px-1 text-[10px]" style={{ border: "1px solid var(--lp-border)", background: "var(--lp-bg)" }}>⌘K</kbd>
           </button>
-          <Button
-            variant="ghost"
-            size="icon"
+          <button
             aria-label="Keyboard shortcuts"
             onClick={() => window.dispatchEvent(new Event("open-shortcuts"))}
-            className="hidden md:inline-flex h-9 w-9 rounded-full text-muted-foreground hover:text-foreground"
+            className="hidden md:inline-flex h-9 w-9 rounded-full items-center justify-center transition-colors"
+            style={{ color: "var(--lp-ink-faint)" }}
           >
             <Keyboard className="h-4 w-4" />
-          </Button>
+          </button>
           {project?.role && (
-            <span className={cn(
-              "text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full border hidden md:inline",
-              project.role === 'OWNER' ? "bg-primary/10 text-primary border-primary/20" :
-                project.role === 'EDITOR' ? "bg-amber-500/10 text-amber-500 border-amber-500/20" :
-                  "bg-muted text-muted-foreground border-border"
-            )}>
+            <span
+              className="text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full border hidden md:inline"
+              style={{ background: ROLE_STYLE[project.role].bg, color: ROLE_STYLE[project.role].fg, borderColor: ROLE_STYLE[project.role].border }}
+            >
               {project.role}
             </span>
           )}
@@ -430,59 +441,58 @@ Please analyze this error and fix the code to resolve it.`;
           <ShareDialog
             projectId={projectId}
             trigger={
-              <Button variant="outline" size="sm" className="h-9 text-sm rounded-full px-4" disabled={project?.role === 'VIEWER'}>
+              <button className="lp-btn lp-btn-ghost !h-9 !text-sm !rounded-full !px-4" disabled={project?.role === 'VIEWER'}>
                 Share
-              </Button>
+              </button>
             }
           />
           {project?.role !== 'VIEWER' && (
-            <Button size="sm" className="hidden sm:inline-flex h-9 text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-5">
+            <button className="hidden sm:inline-flex lp-btn lp-btn-solid !h-9 !text-sm !rounded-full !px-5">
               Publish
-            </Button>
+            </button>
           )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="Account menu" className="h-9 w-9 rounded-full">
+              <button aria-label="Account menu" className="h-9 w-9 rounded-full flex items-center justify-center">
                 <Avatar className="h-7 w-7">
-                  <AvatarFallback className="text-xs bg-primary/15 text-primary font-semibold">
+                  <AvatarFallback style={{ background: "rgba(255,90,46,0.15)", color: "var(--lp-ember)" }} className="text-xs font-semibold">
                     {(getUserInfo()?.name ? getUserInfo()!.name.charAt(0).toUpperCase() : "U")}
                   </AvatarFallback>
                 </Avatar>
-              </Button>
+              </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64 p-0 overflow-hidden">
-              <div className="flex items-center gap-3 p-4 bg-muted/30 border-b border-border/60">
+            <DropdownMenuContent align="end" className="landing-scope w-64 p-0 overflow-hidden rounded-[14px] z-50" style={{ background: "var(--lp-bg-raised)", border: "1px solid var(--lp-border)" }}>
+              <div className="flex items-center gap-3 p-4" style={{ background: "var(--lp-bg-raised-2)", borderBottom: "1px solid var(--lp-border-soft)" }}>
                 <Avatar className="h-10 w-10">
-                  <AvatarFallback className="text-sm bg-primary/15 text-primary font-semibold">
+                  <AvatarFallback style={{ background: "rgba(255,90,46,0.15)", color: "var(--lp-ember)" }} className="text-sm font-semibold">
                     {(getUserInfo()?.name ? getUserInfo()!.name.charAt(0).toUpperCase() : "U")}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold leading-tight text-foreground truncate">{getUserInfo()?.name || "User"}</p>
-                  <p className="text-xs leading-tight text-muted-foreground truncate mt-0.5">{getUserInfo()?.username || ""}</p>
+                  <p className="text-sm font-semibold leading-tight truncate" style={{ color: "var(--lp-ink)" }}>{getUserInfo()?.name || "User"}</p>
+                  <p className="text-xs leading-tight truncate mt-0.5" style={{ color: "var(--lp-ink-faint)" }}>{getUserInfo()?.username || ""}</p>
                 </div>
               </div>
-              <div className="p-1">
-                <DropdownMenuItem onClick={() => navigate("/settings")} className="cursor-pointer rounded-md py-2">
+              <div className="p-1.5">
+                <DropdownMenuItem onClick={() => navigate("/settings")} className="cursor-pointer rounded-[8px] py-2 text-[13.5px]" style={{ color: "var(--lp-ink)" }}>
                   <SettingsIcon className="w-4 h-4 mr-2" /> Settings
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive cursor-pointer rounded-md py-2">
+                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer rounded-[8px] py-2 text-[13.5px]" style={{ color: "var(--lp-ember)" }}>
                   <LogOut className="w-4 h-4 mr-2" /> Sign out
                 </DropdownMenuItem>
               </div>
             </DropdownMenuContent>
-
           </DropdownMenu>
         </div>
       </header>
 
       {/* Main Content */}
-      <main id="workspace-main" className="flex-1 overflow-hidden">
+      <main id="workspace-main" className="flex-1 overflow-hidden relative z-10">
         {isMobile ? (
           /* Mobile: single visible panel with a bottom tab bar */
           <div className="h-full flex flex-col">
             <div className="flex-1 relative overflow-hidden">
-              <div className={cn("absolute inset-0 bg-panel", mobileTab !== "chat" && "hidden")}>
+              <div className={cn("absolute inset-0", mobileTab !== "chat" && "hidden")} style={{ background: "var(--lp-bg-raised)" }}>
                 <ChatPanel
                   messages={messages}
                   onSendMessage={handleSendMessage}
@@ -506,7 +516,8 @@ Please analyze this error and fix the code to resolve it.`;
             </div>
             <nav
               aria-label="Workspace views"
-              className="shrink-0 grid grid-cols-3 border-t border-border/60 bg-card/80 backdrop-blur-md"
+              className="shrink-0 grid grid-cols-3 backdrop-blur-md"
+              style={{ borderTop: "1px solid var(--lp-border-soft)", background: "rgba(18,22,29,0.85)" }}
             >
               {([
                 { id: "chat", label: "Chat", icon: MessageSquare },
@@ -518,10 +529,8 @@ Please analyze this error and fix the code to resolve it.`;
                   type="button"
                   aria-current={mobileTab === id}
                   onClick={() => setMobileTab(id)}
-                  className={cn(
-                    "flex flex-col items-center justify-center gap-1 py-2.5 min-h-12 text-[11px] font-medium transition-colors",
-                    mobileTab === id ? "text-primary" : "text-muted-foreground hover:text-foreground"
-                  )}
+                  className="flex flex-col items-center justify-center gap-1 py-2.5 min-h-12 text-[11px] font-medium transition-colors"
+                  style={{ color: mobileTab === id ? "var(--lp-ember)" : "var(--lp-ink-faint)" }}
                 >
                   <Icon className="w-4 h-4" />
                   {label}
@@ -533,7 +542,7 @@ Please analyze this error and fix the code to resolve it.`;
           <ResizablePanelGroup direction="horizontal" className="h-full">
             {/* Chat Panel */}
             <ResizablePanel defaultSize={35} minSize={25} maxSize={50}>
-              <div className="h-full border-r border-border/50 bg-panel">
+              <div className="h-full" style={{ borderRight: "1px solid var(--lp-border-soft)", background: "var(--lp-bg-raised)" }}>
                 <ChatPanel
                   messages={messages}
                   onSendMessage={handleSendMessage}
@@ -544,7 +553,7 @@ Please analyze this error and fix the code to resolve it.`;
               </div>
             </ResizablePanel>
 
-            <ResizableHandle className="w-px bg-border/50 hover:bg-primary/50 transition-colors" />
+            <ResizableHandle className="w-px transition-colors" style={{ background: "var(--lp-border)" }} />
 
             {/* Code/Preview Panel */}
             <ResizablePanel defaultSize={65} minSize={50} maxSize={75}>
@@ -569,28 +578,30 @@ Please analyze this error and fix the code to resolve it.`;
         )}
       </main>
 
-
       {/* Rename Dialog */}
       <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
-        <DialogContent>
+        <DialogContent className="landing-scope rounded-[18px] p-6" style={{ background: "var(--lp-bg-raised)", border: "1px solid var(--lp-border)" }}>
           <DialogHeader>
-            <DialogTitle>Rename Project</DialogTitle>
+            <DialogTitle className="text-[20px] font-bold" style={{ fontFamily: "'Bricolage Grotesque', sans-serif", color: "var(--lp-ink)" }}>Rename project</DialogTitle>
           </DialogHeader>
-          <div className="py-4">
-            <Input
+          <div className="py-2">
+            <input
               value={renameName}
               onChange={(e) => setRenameName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleRenameSubmit()}
+              className="lp-input"
+              style={{ paddingLeft: "14px" }}
+              autoFocus
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsRenameDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleRenameSubmit} disabled={!renameName.trim() || renameName === project?.name}>
+            <button onClick={() => setIsRenameDialogOpen(false)} className="lp-btn lp-btn-ghost">Cancel</button>
+            <button onClick={handleRenameSubmit} disabled={!renameName.trim() || renameName === project?.name} className="lp-btn lp-btn-solid">
               Save
-            </Button>
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div >
+    </div>
   );
 }

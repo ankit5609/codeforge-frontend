@@ -32,7 +32,7 @@ export const PRICING_PLANS: PricingPlan[] = [
   {
     id: 2,
     name: "Business Plan",
-    price: "₹5,499",
+    price: "₹4,999",
     period: "month",
     description: "Designed for power users and growing developers.",
     features: [

@@ -1,38 +1,53 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { isAuthenticated } from "@/lib/api";
-import { Sparkles, Loader2 } from "lucide-react";
+import LandingNav from "@/components/landing/LandingNav";
+import Hero from "@/components/landing/Hero";
+import WorkflowSection from "@/components/landing/WorkflowSection";
+import WhyCodeForge from "@/components/landing/WhyCodeForge";
+import TechnologySection from "@/components/landing/TechnologySection";
+import ArchitectureSection from "@/components/landing/ArchitectureSection";
+import FeaturesSection from "@/components/landing/FeaturesSection";
+import PricingSection from "@/components/landing/PricingSection";
+import FinalCTA from "@/components/landing/FinalCTA";
+import LandingFooter from "@/components/landing/LandingFooter";
 
+/**
+ * Public landing page. Authenticated users are sent straight to their
+ * projects dashboard; everyone else sees the marketing surface.
+ * Auth/routing logic is unchanged from the previous redirect-only version —
+ * we just render the landing instead of bouncing to /login.
+ */
 const Index = () => {
   const navigate = useNavigate();
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // Redirect based on auth status
     if (isAuthenticated()) {
-      // If authenticated, redirect to projects dashboard
-      navigate("/projects");
+      navigate("/projects", { replace: true });
     } else {
-      navigate("/login");
+      setReady(true);
     }
   }, [navigate]);
 
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center">
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-1/3 left-1/3 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/3 right-1/3 w-[500px] h-[500px] bg-secondary/5 rounded-full blur-3xl" />
-      </div>
+  if (!ready) {
+    return <div className="min-h-screen" style={{ background: "#0A0D12" }} />;
+  }
 
-      <div className="relative flex flex-col items-center">
-        <div className="w-20 h-20 rounded-2xl bg-primary/20 flex items-center justify-center mb-6 glow-effect">
-          <Sparkles className="w-10 h-10 text-primary" />
-        </div>
-        <h1 className="text-3xl font-bold gradient-text mb-4">CodeForge</h1>
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="w-4 h-4 animate-spin" />
-          <span>Loading...</span>
-        </div>
-      </div>
+  return (
+    <div className="landing-scope">
+      <LandingNav />
+      <main>
+        <Hero />
+        <WorkflowSection />
+        <WhyCodeForge />
+        <TechnologySection />
+        <ArchitectureSection />
+        <FeaturesSection />
+        <PricingSection />
+        <FinalCTA />
+      </main>
+      <LandingFooter />
     </div>
   );
 };

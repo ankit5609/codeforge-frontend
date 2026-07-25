@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { ChevronRight, ChevronDown, Folder, FolderOpen } from "lucide-react";
 import { FileNode } from "@/lib/api";
-import { cn } from "@/lib/utils";
 import { StateView } from "@/components/StateView";
 import { FileTypeIcon } from "@/components/FileTypeIcon";
 
@@ -21,10 +20,9 @@ interface FileTreeItemProps {
 
 function FileTreeItem({ node, depth, selectedPath, onSelectFile }: FileTreeItemProps) {
   const [isExpanded, setIsExpanded] = useState(depth < 2);
-  
+
   const isDirectory = node.type === "directory";
   const isSelected = selectedPath === node.path;
-
 
   const handleClick = () => {
     if (isDirectory) {
@@ -41,11 +39,14 @@ function FileTreeItem({ node, depth, selectedPath, onSelectFile }: FileTreeItemP
         tabIndex={0}
         aria-expanded={isDirectory ? isExpanded : undefined}
         aria-label={node.name}
-        className={cn(
-          "file-tree-item focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
-          isSelected && "active"
-        )}
-        style={{ paddingLeft: `${depth * 12 + 8}px` }}
+        className="flex items-center gap-2 px-2 py-1.5 mx-1 rounded-lg cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2"
+        style={{
+          paddingLeft: `${depth * 12 + 8}px`,
+          background: isSelected ? "var(--lp-bg-raised-2)" : "transparent",
+          color: isSelected ? "var(--lp-ink)" : "var(--lp-ink-faint)",
+        }}
+        onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.background = "var(--lp-bg-raised-2)"; }}
+        onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.background = "transparent"; }}
         onClick={handleClick}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
@@ -56,25 +57,25 @@ function FileTreeItem({ node, depth, selectedPath, onSelectFile }: FileTreeItemP
       >
         {isDirectory ? (
           isExpanded ? (
-            <ChevronDown className="w-4 h-4 shrink-0 text-muted-foreground" />
+            <ChevronDown className="w-4 h-4 shrink-0" style={{ color: "var(--lp-ink-faint)" }} />
           ) : (
-            <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" />
+            <ChevronRight className="w-4 h-4 shrink-0" style={{ color: "var(--lp-ink-faint)" }} />
           )
         ) : (
           <span className="w-4" />
         )}
         {isDirectory ? (
           isExpanded ? (
-            <FolderOpen className="w-4 h-4 shrink-0 text-secondary/80" />
+            <FolderOpen className="w-4 h-4 shrink-0" style={{ color: "var(--lp-brass)" }} />
           ) : (
-            <Folder className="w-4 h-4 shrink-0 text-secondary/80" />
+            <Folder className="w-4 h-4 shrink-0" style={{ color: "var(--lp-brass)" }} />
           )
         ) : (
           <FileTypeIcon name={node.name} />
         )}
         <span className="truncate text-sm">{node.name}</span>
       </div>
-      
+
       {isDirectory && isExpanded && node.children && (
         <div>
           {node.children.map((child) => (
@@ -98,8 +99,8 @@ export function FileTree({ files, selectedPath, onSelectFile, isLoading }: FileT
       <div className="p-4 space-y-2">
         {[1, 2, 3, 4, 5].map((i) => (
           <div key={i} className="flex items-center gap-2 animate-pulse">
-            <div className="w-4 h-4 bg-muted rounded" />
-            <div className="h-4 bg-muted rounded flex-1" style={{ width: `${50 + i * 10}%` }} />
+            <div className="w-4 h-4 rounded" style={{ background: "var(--lp-bg-raised-2)" }} />
+            <div className="h-4 rounded flex-1" style={{ width: `${50 + i * 10}%`, background: "var(--lp-bg-raised-2)" }} />
           </div>
         ))}
       </div>

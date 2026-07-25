@@ -376,7 +376,7 @@ export const api = {
     const trimmedMessage = message?.trim() ?? "";
 
     let body: BodyInit;
-    const headers: Record<string, string> = { ...getAuthHeaders() };
+    const headers: Record<string, string> = { ...(getAuthHeaders() as Record<string, string>) };
 
     const form = new FormData();
     form.append("projectId", String(projectId));

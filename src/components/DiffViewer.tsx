@@ -50,33 +50,33 @@ export function DiffViewer({ oldValue, newValue, className }: DiffViewerProps) {
   );
 
   return (
-    <div className={cn("h-full overflow-auto bg-background font-mono text-xs leading-relaxed", className)}>
+    <div className={cn("h-full overflow-auto font-mono text-xs leading-relaxed", className)} style={{ background: "var(--lp-bg)" }}>
       <table className="w-full border-collapse">
         <tbody>
           {rows.map((row, idx) => {
             const bg =
               row.type === "add"
-                ? "bg-primary/10"
+                ? "rgba(69,196,184,0.09)"
                 : row.type === "del"
-                  ? "bg-destructive/10"
-                  : "";
+                  ? "rgba(255,90,46,0.09)"
+                  : "transparent";
             const marker = row.type === "add" ? "+" : row.type === "del" ? "-" : " ";
             const markerColor =
               row.type === "add"
-                ? "text-primary"
+                ? "var(--lp-teal)"
                 : row.type === "del"
-                  ? "text-destructive"
-                  : "text-muted-foreground/40";
+                  ? "var(--lp-ember)"
+                  : "var(--lp-ink-faint)";
             return (
-              <tr key={idx} className={bg}>
-                <td className="w-10 select-none border-r border-border/40 px-2 text-right text-muted-foreground/50">
+              <tr key={idx} style={{ background: bg }}>
+                <td className="w-10 select-none px-2 text-right" style={{ borderRight: "1px solid var(--lp-border-soft)", color: "var(--lp-ink-faint)" }}>
                   {row.type !== "add" ? (row as { oldNo: number }).oldNo : ""}
                 </td>
-                <td className="w-10 select-none border-r border-border/40 px-2 text-right text-muted-foreground/50">
+                <td className="w-10 select-none px-2 text-right" style={{ borderRight: "1px solid var(--lp-border-soft)", color: "var(--lp-ink-faint)" }}>
                   {row.type !== "del" ? (row as { newNo: number }).newNo : ""}
                 </td>
-                <td className={cn("w-5 select-none px-1 text-center", markerColor)}>{marker}</td>
-                <td className="whitespace-pre-wrap px-2 text-foreground/90">{row.text || " "}</td>
+                <td className="w-5 select-none px-1 text-center" style={{ color: markerColor }}>{marker}</td>
+                <td className="whitespace-pre-wrap px-2" style={{ color: "var(--lp-ink-dim)" }}>{row.text || " "}</td>
               </tr>
             );
           })}
