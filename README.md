@@ -12,11 +12,11 @@
 [![Docker](https://img.shields.io/badge/Docker-Nginx-2496ED.svg?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 [![License](https://img.shields.io/badge/License-MIT-F59E0B.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
-> The React frontend for **Distributed CodeForge** — a cloud-native AI-powered collaborative IDE.  
+> The React frontend for **Distributed CodeForge** — a cloud-native AI-powered full-stack application development platform.  
 > For full system architecture, backend services, and deployment docs, see the  
 > **[📖 Distributed CodeForge main repository →](https://github.com/ankit5609/Distributed-CodeForge)**
 
-**🌐 Live:** [codeforge.arclite.site](http://codeforge.arclite.site)
+**🌐 Live:** [codeforge.arclite.site](https://codeforge.arclite.site)
 
 </div>
 
@@ -54,7 +54,7 @@ Click **"Use the demo account"** on the login page to auto-fill and sign in.
 src/
 ├── pages/                      # Route-level page components
 │   ├── Index.jsx               # Landing page
-│   ├── ProjectView.jsx         # Main IDE workspace (Chat + Editor + Preview)
+│   ├── ProjectView.jsx         # Main workspace (Chat + Editor + Preview)
 │   ├── ProjectsDashboard.jsx   # Project list and creation
 │   ├── Settings.jsx            # User settings and billing
 │   ├── Signup.jsx              # Registration page
